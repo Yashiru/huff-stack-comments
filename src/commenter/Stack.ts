@@ -9,7 +9,7 @@ export class Stack{
         this.stackValues = initialStack || []
     }
     public push(value: string){
-        this.stackValues.push(value)
+        this.stackValues.unshift(value)
     }
 
     public pop(){
@@ -21,8 +21,8 @@ export class Stack{
     }
 
     public dup(index: number){
-        this.push(
-            this.stackValues[index]
+        this.stackValues.unshift(
+            this.stackValues[index-1]
         )
     }
 
@@ -56,6 +56,6 @@ export class Stack{
             return value
         })
         
-        return "[" + tempStack.reverse().join(", ") + "]"
+        return "[" + tempStack.join(", ") + "]"
     }
 }
