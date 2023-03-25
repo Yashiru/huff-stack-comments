@@ -30,7 +30,9 @@ export class Commenter{
         let i = 0
         for(let token of this.tokens){
             this.interpret(token);
-            if(this.tokens[i+1] == null || this.tokens[i+1].endLine! > token.endLine!){                
+            if((this.tokens[i+1] == null || this.tokens[i+1].endLine! > token.endLine!) &&token.tokenType.name != "end of block"){  
+                console.log(this.documentLines[token.endLine!-1].replace(/\/\/.*/, ''));
+                                          
                 this.documentLines[token.endLine!-1] = this.documentLines[token.endLine!-1].replace(/\/\/.*/, '').padEnd(this.maxLineLength + 1, " ") + "// " + this.stack.getStackComment()
             }
 
@@ -501,39 +503,39 @@ export class Commenter{
     }
 
     private dup1(t: IToken){
-
+        this.stack.dup(1)
     }
 
     private dup2(t: IToken){
-
+        this.stack.dup(2)
     }
 
     private dup3(t: IToken){
-
+        this.stack.dup(3)
     }
 
     private dup4(t: IToken){
-
+        this.stack.dup(4)
     }
 
     private dup5(t: IToken){
-
+        this.stack.dup(5)
     }
 
     private dup6(t: IToken){
-
+        this.stack.dup(6)
     }
 
     private dup7(t: IToken){
-
+        this.stack.dup(7)
     }
 
     private dup8(t: IToken){
-
+        this.stack.dup(8)
     }
 
     private dup9(t: IToken){
-
+        this.stack.dup(9)
     }
 
     private log0(t: IToken){
