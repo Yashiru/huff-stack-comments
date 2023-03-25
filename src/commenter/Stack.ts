@@ -16,7 +16,7 @@ export class Stack{
         const popedVal = this.stackValues[
             this.stackValues.length-1
         ]
-        this.stackValues.pop()
+        this.stackValues.shift()
         return popedVal
     }
 
