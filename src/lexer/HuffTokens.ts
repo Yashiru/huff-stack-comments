@@ -110,6 +110,7 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
     createToken({ name: "log3", pattern: /log3/ }),
     createToken({ name: "log4", pattern: /log4/ }),
     createToken({ name: "call", pattern: /call/ }),
+    createToken({ name: "sha3", pattern: /sha3/ }),
     createToken({ name: "add", pattern: /add/ }),
     createToken({ name: "mul", pattern: /mul/ }),
     createToken({ name: "sub", pattern: /sub/ }),
