@@ -3,6 +3,7 @@ import { createToken, Lexer, TokenType, TokenVocabulary } from "chevrotain";
 export const HUFF_MAIN_TOKENS: TokenType[] = [
     // /* --------------------------------- Skipped -------------------------------- */
     createToken({ name: "whiteSpace", pattern: /\s+/, group: Lexer.SKIPPED }),
+    createToken({ name: "new line", pattern: /\n|\r|\u2028|\u2029/, line_breaks: true }),
     createToken({ name: "comments", pattern: /\/\/.*/, group: Lexer.SKIPPED }),
     createToken({ name: "comments", pattern: /\/\*.*\*\//, group: Lexer.SKIPPED }),
     createToken({ name: "multiline comments", pattern: /\/\*(.|\n)*\*\//, group: Lexer.SKIPPED }),
@@ -134,8 +135,8 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
     createToken({ name: "or", pattern: /or/ }),
     createToken({ name: "pc", pattern: /pc/ }),
     createToken({ name: "end of block", pattern: /}/ }),
-]
+];
 
 export const HUFF_CHILDREN_TOKENS: TokenType[] = [
     createToken({ name: "takes", pattern: /takes\([0-9]*\)/ }),
-]
+];

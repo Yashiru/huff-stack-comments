@@ -5,7 +5,6 @@ import { UInt256, U256 } from"../uint256/uint256";
 import * as vscode from 'vscode';
 
 const MAX_INT256 = new UInt256("0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-const MAX_UINT256 = new UInt256("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 const editor = vscode.window.activeTextEditor!;
 
 export class Commenter{
@@ -271,7 +270,7 @@ export class Commenter{
             );
         }
         catch(err){
-            const expr = '(' + a + '+' + b + ')%' + n;    
+            const expr = '(' + a + ' + ' + b + ') % ' + n;    
             this.stack.push(expr);
         }
     }
@@ -287,7 +286,7 @@ export class Commenter{
             );
         }
         catch(err){
-            const expr = '(' + a + '*' + b + ')%' + n;
+            const expr = '(' + a + ' * ' + b + ') % ' + n;
             this.stack.push(expr);
         }
     }
@@ -493,32 +492,28 @@ export class Commenter{
         try{            
             let a = U256(lval);
             let b = U256(rval);    
-    
+            
             const negateResult = 
-                b.gt(MAX_INT256) && !a.gt(MAX_INT256) || 
-                a.gt(MAX_INT256) && !b.gt(MAX_INT256);
-    
+                b.gt(MAX_INT256) && a.gt(MAX_INT256) ||
+                a.gt(MAX_INT256);
+
             a = a.gt(MAX_INT256) ? a.negate() : a;
-            b = b.gt(MAX_INT256) ? b.negate() : b;   
-    
+            b = b.gt(MAX_INT256) ? b.negate() : b;
+
             a = a.mod(b);
-    
+
             if(negateResult) a = a.negate();
-    
-            this.stack.push(("0x"+a.toString(16).toLowerCase()));
+        
+                this.stack.push(("0x"+a.toString(16).toLowerCase()));
         }
         catch(err){
-            this.stack.push(lval+"/"+rval);
+            this.stack.push(lval+"%"+rval);
         }
     }
 
-    private byte(t: IToken){
+    private byte(t: IToken){}
 
-    }
-
-    private jump(t: IToken){
-
-    }
+    private jump(t: IToken){}
 
     private dup1(t: IToken){
         this.stack.dup(1);
@@ -617,7 +612,7 @@ export class Commenter{
             );
         }
         catch(err){
-            const expr = a + '+' + b;
+            const expr = a + ' + ' + b;
             this.stack.push(expr);
         }
     }
@@ -632,7 +627,7 @@ export class Commenter{
             );
         }
         catch(err){
-            const expr = a + '*' + b;
+            const expr = a + ' * ' + b;
             this.stack.push(expr);
         }
     }
@@ -647,7 +642,7 @@ export class Commenter{
             );
         }
         catch(err){
-            const expr = a + '-' + b;
+            const expr = a + ' - ' + b;
             this.stack.push(expr);
         }
     }
@@ -662,7 +657,7 @@ export class Commenter{
             );
         }
         catch(err){
-            const expr = a + '/' + b;
+            const expr = a + ' / ' + b;
             this.stack.push(expr);
         }
     }
@@ -677,7 +672,7 @@ export class Commenter{
             );
         }
         catch(err){
-            const expr = a + '%' + b;
+            const expr = a + ' % ' + b;
             this.stack.push(expr);
         }
     }
@@ -692,7 +687,7 @@ export class Commenter{
             );
         }
         catch(err){
-            const expr = a + '**' + b;
+            const expr = a + ' ** ' + b;
             this.stack.push(expr);
         }
     }
@@ -705,17 +700,13 @@ export class Commenter{
             let a = U256(lval);
             let b = U256(rval);    
     
-            const negateResult = 
-                b.gt(MAX_INT256) && !a.gt(MAX_INT256) || 
-                a.gt(MAX_INT256) && !b.gt(MAX_INT256);
-    
             a = a.gt(MAX_INT256) ? a.negate() : a;
             b = b.gt(MAX_INT256) ? b.negate() : b;   
     
-            this.stack.push(a.lt(b).toString());
+            this.stack.push(a.lt(b) ? "0x1" : "0x0");
         }
         catch(err){
-            this.stack.push(lval+"<"+rval);
+            this.stack.push(lval+" < "+rval);
         }
     }
 
@@ -727,17 +718,13 @@ export class Commenter{
             let a = U256(lval);
             let b = U256(rval);    
     
-            const negateResult = 
-                b.gt(MAX_INT256) && !a.gt(MAX_INT256) || 
-                a.gt(MAX_INT256) && !b.gt(MAX_INT256);
-    
             a = a.gt(MAX_INT256) ? a.negate() : a;
             b = b.gt(MAX_INT256) ? b.negate() : b;   
     
-            this.stack.push(a.gt(b).toString());
+            this.stack.push(a.gt(b) ? "0x1" : "0x0");
         }
         catch(err){
-            this.stack.push(lval+">"+rval);
+            this.stack.push(lval+" > "+rval);
         }
     }
 
@@ -810,7 +797,7 @@ export class Commenter{
             );
         }
         catch(err){
-            const expr = `${b} << ${a}`;
+            const expr = `${b} >> ${a}`;
             this.stack.push(expr);
         }
     }
@@ -823,24 +810,17 @@ export class Commenter{
     }
 
     private sar(t: IToken){
-        let lval = this.stack.pop();
-        let rval = this.stack.pop();
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
-        try{            
-            let a = U256(lval);
-            let b = U256(rval);    
-    
-            const negateResult = 
-                b.gt(MAX_INT256) && !a.gt(MAX_INT256) || 
-                a.gt(MAX_INT256) && !b.gt(MAX_INT256);
-    
-            a = a.gt(MAX_INT256) ? a.negate() : a;
-            b = b.gt(MAX_INT256) ? b.negate() : b;   
-    
-            this.stack.push(b.sar(parseInt(a.toString())).toString());
+        try{
+            this.stack.push(
+                "0x"+U256(b).sar(parseInt(a)).toString(16)
+            );
         }
         catch(err){
-            this.stack.push(lval+">"+rval);
+            const expr = `${b} >> ${a}`;
+            this.stack.push(expr);
         }
     }
 
@@ -856,12 +836,13 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = `${a} < ${b}`;
-
         try{
-            this.stack.push("0x"+eval(expr).toString(16));
+            this.stack.push(
+                U256(a).lt(U256(b)) ? "0x1" : "0x0"
+            );
         }
         catch(err){
+            const expr = `${a} < ${b}`;
             this.stack.push(expr);
         }
     }
@@ -870,12 +851,13 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = `${a} > ${b}`;
-
         try{
-            this.stack.push("0x"+eval(expr).toString(16));
+            this.stack.push(
+                U256(a).gt(U256(b)) ? "0x1" : "0x0"
+            );
         }
         catch(err){
+            const expr = `${a} > ${b}`;
             this.stack.push(expr);
         }
     }
@@ -884,12 +866,13 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = `${a} == ${b}`;
-
         try{
-            this.stack.push("0x"+eval(expr).toString(16));
+            this.stack.push(
+                U256(a).eq(U256(b)) ? "0x1" : "0x0"
+            );
         }
         catch(err){
+            const expr = `${a} == ${b}`;
             this.stack.push(expr);
         }
     }
@@ -904,7 +887,7 @@ export class Commenter{
             );
         }
         catch(err){
-            const expr = a + ' | ' + b;
+            const expr = `${a} | ${b}`;
             this.stack.push(expr);
         }
     }
