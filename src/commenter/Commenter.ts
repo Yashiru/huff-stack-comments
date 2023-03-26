@@ -539,23 +539,38 @@ export class Commenter{
     }
 
     private log0(t: IToken){
-
+        this.stack.pop()
+        this.stack.pop()
     }
 
     private log1(t: IToken){
-
+        this.stack.pop()
+        this.stack.pop()
+        this.stack.pop()
     }
 
     private log2(t: IToken){
-
+        this.stack.pop()
+        this.stack.pop()
+        this.stack.pop()
+        this.stack.pop()
     }
 
     private log3(t: IToken){
-
+        this.stack.pop()
+        this.stack.pop()
+        this.stack.pop()
+        this.stack.pop()
+        this.stack.pop()
     }
 
     private log4(t: IToken){
-
+        this.stack.pop()
+        this.stack.pop()
+        this.stack.pop()
+        this.stack.pop()
+        this.stack.pop()
+        this.stack.pop()
     }
 
     private call(t: IToken){
@@ -570,68 +585,238 @@ export class Commenter{
         this.stack.push("success?");
     }
 
-    private add(t: IToken){
+    private sha3(t: IToken){
+        this.sha(t)
+    }
 
+    private add(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
+
+        const expr = a + '+' + b;
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private mul(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = a + '*' + b;
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private sub(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = a + '-' + b;
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private div(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = a + '/' + b;
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private mod(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = a + '%' + b;
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private exp(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = a + '**' + b;
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private slt(t: IToken){
+        let lval = this.stack.pop();
+        let rval = this.stack.pop();
 
+        try{            
+            let a = U256(lval);
+            let b = U256(rval);    
+    
+            const negateResult = 
+                b.gt(MAX_INT256) && !a.gt(MAX_INT256) || 
+                a.gt(MAX_INT256) && !b.gt(MAX_INT256);
+    
+            a = a.gt(MAX_INT256) ? a.negate() : a;
+            b = b.gt(MAX_INT256) ? b.negate() : b;   
+    
+            this.stack.push(a.lt(b).toString());
+        }
+        catch(err){
+            this.stack.push(lval+"<"+rval);
+        }
     }
 
     private sgt(t: IToken){
+        let lval = this.stack.pop();
+        let rval = this.stack.pop();
 
+        try{            
+            let a = U256(lval);
+            let b = U256(rval);    
+    
+            const negateResult = 
+                b.gt(MAX_INT256) && !a.gt(MAX_INT256) || 
+                a.gt(MAX_INT256) && !b.gt(MAX_INT256);
+    
+            a = a.gt(MAX_INT256) ? a.negate() : a;
+            b = b.gt(MAX_INT256) ? b.negate() : b;   
+    
+            this.stack.push(a.gt(b).toString());
+        }
+        catch(err){
+            this.stack.push(lval+">"+rval);
+        }
     }
 
     private and(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = `${a} & ${b}`
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private xor(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = `${a} ^ ${b}`
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private not(t: IToken){
+        const a = this.stack.pop();
 
+        const expr = `~${a}`
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private shl(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = `${b} << ${a}`
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private shr(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = `${b} >> ${a}`
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private sha(t: IToken){
+        this.stack.pop();
+        this.stack.pop();
 
+        this.stack.push("hash")
     }
 
     private sar(t: IToken){
+        let lval = this.stack.pop();
+        let rval = this.stack.pop();
 
+        try{            
+            let a = U256(lval);
+            let b = U256(rval);    
+    
+            const negateResult = 
+                b.gt(MAX_INT256) && !a.gt(MAX_INT256) || 
+                a.gt(MAX_INT256) && !b.gt(MAX_INT256);
+    
+            a = a.gt(MAX_INT256) ? a.negate() : a;
+            b = b.gt(MAX_INT256) ? b.negate() : b;   
+    
+            this.stack.push(b.sar(parseInt(a.toString())).toString());
+        }
+        catch(err){
+            this.stack.push(lval+">"+rval);
+        }
     }
 
     private pop(t: IToken){
-
+        this.stack.pop();
     }
 
     private gas(t: IToken){
@@ -639,23 +824,63 @@ export class Commenter{
     }
 
     private lt(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = `${a} < ${b}`
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private gt(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = `${a} > ${b}`
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private eq(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = `${a} == ${b}`
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private or(t: IToken){
+        const a = this.stack.pop();
+        const b = this.stack.pop();
 
+        const expr = `${a} | ${b}`
+
+        try{
+            this.stack.push(eval(expr));
+        }
+        catch(err){
+            this.stack.push(expr);
+        }
     }
 
     private pc(t: IToken){
-
+        this.stack.push("PC")
     }
 
 }
