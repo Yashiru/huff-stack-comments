@@ -5,6 +5,7 @@ import { UInt256, U256 } from"../uint256/uint256";
 import * as vscode from 'vscode';
 
 const MAX_INT256 = new UInt256("0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+const MAX_UINT256 = new UInt256("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 const editor = vscode.window.activeTextEditor!;
 
 export class Commenter{
@@ -13,38 +14,52 @@ export class Commenter{
     private stack: Stack = new Stack();
     private tokenLexer = new Lexer(HUFF_CHILDREN_TOKENS);
 
-    private maxLineLength: number = 0
+    private maxLineLength: number = 0;
 
     constructor(document: string, tokens: IToken[]){
         this.documentLines = document.split("\n");
         this.tokens = tokens;
 
         for(let line of this.documentLines){
-            let tempLine = line.replace(/\/\/.*/, '')
-            this.maxLineLength = tempLine.length > this.maxLineLength ? tempLine.length : this.maxLineLength
+            let tempLine = line.replace(/\/\/.*/, '');
+            this.maxLineLength = tempLine.length > this.maxLineLength ? tempLine.length : this.maxLineLength;
         }
     }
 
     public generateStackComments(){
-
-        let i = 0
+        let i = 0;
         for(let token of this.tokens){
+            
             this.interpret(token);
-            if((this.tokens[i+1] == null || this.tokens[i+1].endLine! > token.endLine!) &&token.tokenType.name != "end of block"){  
-                console.log(this.documentLines[token.endLine!-1].replace(/\/\/.*/, ''));
-                                          
-                this.documentLines[token.endLine!-1] = this.documentLines[token.endLine!-1].replace(/\/\/.*/, '').padEnd(this.maxLineLength + 1, " ") + "// " + this.stack.getStackComment()
+            if((this.tokens[i+1] == null || this.tokens[i+1].endLine! > token.endLine!) && token.tokenType.name != "end of block"){                                            
+                this.documentLines[token.endLine!-1] = this.documentLines[token.endLine!-1].replace(/\/\/.*/, '').padEnd(this.maxLineLength + 1, " ") + "// " + this.stack.getStackComment();
             }
 
-            i++
+            i++;
         }
 
         editor.edit(editBuilder => {
-            const start = new vscode.Position(0, 0)
-            const end = new vscode.Position(Infinity, Infinity)
-            const range = new vscode.Range(start, end)
+            const start = new vscode.Position(0, 0);
+            const end = new vscode.Position(Infinity, Infinity);
+            const range = new vscode.Range(start, end);
             editBuilder.replace(range, this.documentLines.join("\n"));
-        })
+        });
+    }
+
+    public getStackComments(){
+        let commentLines = []; 
+        let i = 0;
+        for(let token of this.tokens){
+            this.interpret(token);
+
+            if((this.tokens[i+1] == null || this.tokens[i+1].endLine! > token.endLine!) && token.tokenType.name != "end of block"){                                            
+                commentLines[token.endLine!-1] = this.stack.getStackComment();
+            }
+
+            i++;
+        }
+
+        return commentLines;
     }
 
     private interpret(token: IToken){   
@@ -86,7 +101,7 @@ export class Commenter{
     }
 
     private variable(t: IToken){
-        this.stack.push(t.image);
+        this.stack.push(t.image.replace('[', '').replace(']', ''));
     }
 
     private functionCall(t: IToken){
@@ -202,7 +217,7 @@ export class Commenter{
     }
 
     private gaslimit(t: IToken){
-        this.stack.push("gaslimit");
+        this.stack.push("gasLimit");
     }
 
     private callcode(t: IToken){
@@ -215,8 +230,9 @@ export class Commenter{
 
     private balance(t: IToken){
         let account = this.stack.pop();
+        
         account = account.length > 20 ? account.slice(0, 4)+"..."+account.slice(-2) : account;
-        this.stack.push(`balanceOf[${account}]`);
+        this.stack.push(`balanceOf(${account})`);
     }
 
     private chainid(t: IToken){
@@ -244,17 +260,18 @@ export class Commenter{
         this.stack.push("invalid");
     }
 
-    private addmod(t: IToken){
+    private addmod(t: IToken){        
         const a = this.stack.pop();
         const b = this.stack.pop();
         const n = this.stack.pop();
 
-        const expr = '(' + a + '+' + b + ')%' + n;
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(a).add(U256(b)).mod(U256(n)).toString(16)
+            );
         }
         catch(err){
+            const expr = '(' + a + '+' + b + ')%' + n;    
             this.stack.push(expr);
         }
     }
@@ -264,12 +281,13 @@ export class Commenter{
         const b = this.stack.pop();
         const n = this.stack.pop();
 
-        const expr = '(' + a + '*' + b + ')%' + n;
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(a).mul(U256(b)).mod(U256(n)).toString(16)
+            );
         }
         catch(err){
+            const expr = '(' + a + '*' + b + ')%' + n;
             this.stack.push(expr);
         }
     }
@@ -457,7 +475,7 @@ export class Commenter{
             a = a.gt(MAX_INT256) ? a.negate() : a;
             b = b.gt(MAX_INT256) ? b.negate() : b;   
     
-            a = a.div(b)
+            a = a.div(b);
     
             if(negateResult) a = a.negate();
     
@@ -483,7 +501,7 @@ export class Commenter{
             a = a.gt(MAX_INT256) ? a.negate() : a;
             b = b.gt(MAX_INT256) ? b.negate() : b;   
     
-            a = a.mod(b)
+            a = a.mod(b);
     
             if(negateResult) a = a.negate();
     
@@ -503,74 +521,74 @@ export class Commenter{
     }
 
     private dup1(t: IToken){
-        this.stack.dup(1)
+        this.stack.dup(1);
     }
 
     private dup2(t: IToken){
-        this.stack.dup(2)
+        this.stack.dup(2);
     }
 
     private dup3(t: IToken){
-        this.stack.dup(3)
+        this.stack.dup(3);
     }
 
     private dup4(t: IToken){
-        this.stack.dup(4)
+        this.stack.dup(4);
     }
 
     private dup5(t: IToken){
-        this.stack.dup(5)
+        this.stack.dup(5);
     }
 
     private dup6(t: IToken){
-        this.stack.dup(6)
+        this.stack.dup(6);
     }
 
     private dup7(t: IToken){
-        this.stack.dup(7)
+        this.stack.dup(7);
     }
 
     private dup8(t: IToken){
-        this.stack.dup(8)
+        this.stack.dup(8);
     }
 
     private dup9(t: IToken){
-        this.stack.dup(9)
+        this.stack.dup(9);
     }
 
     private log0(t: IToken){
-        this.stack.pop()
-        this.stack.pop()
+        this.stack.pop();
+        this.stack.pop();
     }
 
     private log1(t: IToken){
-        this.stack.pop()
-        this.stack.pop()
-        this.stack.pop()
+        this.stack.pop();
+        this.stack.pop();
+        this.stack.pop();
     }
 
     private log2(t: IToken){
-        this.stack.pop()
-        this.stack.pop()
-        this.stack.pop()
-        this.stack.pop()
+        this.stack.pop();
+        this.stack.pop();
+        this.stack.pop();
+        this.stack.pop();
     }
 
     private log3(t: IToken){
-        this.stack.pop()
-        this.stack.pop()
-        this.stack.pop()
-        this.stack.pop()
-        this.stack.pop()
+        this.stack.pop();
+        this.stack.pop();
+        this.stack.pop();
+        this.stack.pop();
+        this.stack.pop();
     }
 
     private log4(t: IToken){
-        this.stack.pop()
-        this.stack.pop()
-        this.stack.pop()
-        this.stack.pop()
-        this.stack.pop()
-        this.stack.pop()
+        this.stack.pop();
+        this.stack.pop();
+        this.stack.pop();
+        this.stack.pop();
+        this.stack.pop();
+        this.stack.pop();
     }
 
     private call(t: IToken){
@@ -586,19 +604,20 @@ export class Commenter{
     }
 
     private sha3(t: IToken){
-        this.sha(t)
+        this.sha(t);
     }
 
     private add(t: IToken){
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = a + '+' + b;
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(a).add(U256(b)).toString(16)
+            );
         }
         catch(err){
+            const expr = a + '+' + b;
             this.stack.push(expr);
         }
     }
@@ -607,12 +626,13 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = a + '*' + b;
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(a).mul(U256(b)).toString(16)
+            );
         }
         catch(err){
+            const expr = a + '*' + b;
             this.stack.push(expr);
         }
     }
@@ -621,12 +641,13 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = a + '-' + b;
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(a).sub(U256(b)).toString(16)
+            );
         }
         catch(err){
+            const expr = a + '-' + b;
             this.stack.push(expr);
         }
     }
@@ -635,12 +656,13 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = a + '/' + b;
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(a).div(U256(b)).toString(16)
+            );
         }
         catch(err){
+            const expr = a + '/' + b;
             this.stack.push(expr);
         }
     }
@@ -649,12 +671,13 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = a + '%' + b;
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(a).mod(U256(b)).toString(16)
+            );
         }
         catch(err){
+            const expr = a + '%' + b;
             this.stack.push(expr);
         }
     }
@@ -663,12 +686,13 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = a + '**' + b;
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(a).pow(parseInt(b)).toString(16)
+            );
         }
         catch(err){
+            const expr = a + '**' + b;
             this.stack.push(expr);
         }
     }
@@ -721,12 +745,13 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = `${a} & ${b}`
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(a).and(U256(b)).toString(16)
+            );
         }
         catch(err){
+            const expr = a + ' & ' + b;
             this.stack.push(expr);
         }
     }
@@ -735,12 +760,13 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = `${a} ^ ${b}`
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(a).xor(U256(b)).toString(16)
+            );
         }
         catch(err){
+            const expr = a + ' ^ ' + b;
             this.stack.push(expr);
         }
     }
@@ -748,12 +774,13 @@ export class Commenter{
     private not(t: IToken){
         const a = this.stack.pop();
 
-        const expr = `~${a}`
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(a).not().toString(16)
+            );
         }
         catch(err){
+            const expr = "~"+a;
             this.stack.push(expr);
         }
     }
@@ -762,12 +789,13 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = `${b} << ${a}`
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(b).shl(parseInt(a)).toString(16)
+            );
         }
         catch(err){
+            const expr = `${b} << ${a}`;
             this.stack.push(expr);
         }
     }
@@ -776,12 +804,13 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = `${b} >> ${a}`
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(b).shr(parseInt(a)).toString(16)
+            );
         }
         catch(err){
+            const expr = `${b} << ${a}`;
             this.stack.push(expr);
         }
     }
@@ -790,7 +819,7 @@ export class Commenter{
         this.stack.pop();
         this.stack.pop();
 
-        this.stack.push("hash")
+        this.stack.push("hash");
     }
 
     private sar(t: IToken){
@@ -827,10 +856,10 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = `${a} < ${b}`
+        const expr = `${a} < ${b}`;
 
         try{
-            this.stack.push(eval(expr));
+            this.stack.push("0x"+eval(expr).toString(16));
         }
         catch(err){
             this.stack.push(expr);
@@ -841,10 +870,10 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = `${a} > ${b}`
+        const expr = `${a} > ${b}`;
 
         try{
-            this.stack.push(eval(expr));
+            this.stack.push("0x"+eval(expr).toString(16));
         }
         catch(err){
             this.stack.push(expr);
@@ -855,10 +884,10 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = `${a} == ${b}`
+        const expr = `${a} == ${b}`;
 
         try{
-            this.stack.push(eval(expr));
+            this.stack.push("0x"+eval(expr).toString(16));
         }
         catch(err){
             this.stack.push(expr);
@@ -869,18 +898,19 @@ export class Commenter{
         const a = this.stack.pop();
         const b = this.stack.pop();
 
-        const expr = `${a} | ${b}`
-
         try{
-            this.stack.push(eval(expr));
+            this.stack.push(
+                "0x"+U256(a).or(U256(b)).toString(16)
+            );
         }
         catch(err){
+            const expr = a + ' | ' + b;
             this.stack.push(expr);
         }
     }
 
     private pc(t: IToken){
-        this.stack.push("PC")
+        this.stack.push("PC");
     }
 
 }
