@@ -1,7 +1,7 @@
 import { IToken, Lexer, TokenType } from "chevrotain";
 import { HUFF_CHILDREN_TOKENS } from "../lexer/HuffTokens";
 import { Stack } from "./Stack";
-import { UInt256, U256 } from "../uint256/uint256";
+import { UInt256, uint256 } from "../uint256/uint256";
 import * as vscode from 'vscode';
 import { HuffMacro } from "../interfaces/HuffMacro";
 
@@ -40,10 +40,10 @@ export class Commenter {
             
             if (
                 (
-                    this.tokens[this.ptr + 1] == null || 
+                    this.tokens[this.ptr + 1] === undefined || 
                     this.tokens[this.ptr + 1].endLine! > this.tokens[this.ptr].endLine!
                 ) && 
-                this.tokens[this.ptr].tokenType.name != "blockEnd"
+                this.tokens[this.ptr].tokenType.name !== "blockEnd"
             ) {
                 this.documentLines[this.tokens[this.ptr].endLine! - 1] = 
                     this.documentLines[this.tokens[this.ptr].endLine! - 1]
@@ -69,10 +69,10 @@ export class Commenter {
             
             if (
                 (
-                    this.tokens[this.ptr + 1] == null || 
+                    this.tokens[this.ptr + 1] === undefined || 
                     this.tokens[this.ptr + 1].endLine! > this.tokens[this.ptr].endLine!
                 ) && 
-                this.tokens[this.ptr].tokenType.name != "blockEnd"
+                this.tokens[this.ptr].tokenType.name !== "blockEnd"
             ) {                
                 commentLines.push(this.stack.getStackComment());
             }
@@ -101,7 +101,7 @@ export class Commenter {
     }
 
     private interpret(token: IToken) {
-        if ((this as any)[token.tokenType.name] != null) {            
+        if ((this as any)[token.tokenType.name] !== undefined) {            
             (this as any)[token.tokenType.name](token);
         }
     }
@@ -331,7 +331,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(a).add(U256(b)).mod(U256(n)).toString(16)
+                "0x" + uint256(a).add(uint256(b)).mod(uint256(n)).toString(16)
             );
         }
         catch (err) {
@@ -347,7 +347,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(a).mul(U256(b)).mod(U256(n)).toString(16)
+                "0x" + uint256(a).mul(uint256(b)).mod(uint256(n)).toString(16)
             );
         }
         catch (err) {
@@ -529,8 +529,8 @@ export class Commenter {
         let rval = this.stack.pop();
 
         try {
-            let a = U256(lval);
-            let b = U256(rval);
+            let a = uint256(lval);
+            let b = uint256(rval);
 
             const negateResult =
                 b.gt(MAX_INT256) && !a.gt(MAX_INT256) ||
@@ -541,7 +541,7 @@ export class Commenter {
 
             a = a.div(b);
 
-            if (negateResult) a = a.negate();
+            if (negateResult) { a = a.negate(); }
 
             this.stack.push(("0x" + a.toString(16).toLowerCase()));
         }
@@ -555,8 +555,8 @@ export class Commenter {
         let rval = this.stack.pop();
 
         try {
-            let a = U256(lval);
-            let b = U256(rval);
+            let a = uint256(lval);
+            let b = uint256(rval);
 
             const negateResult =
                 b.gt(MAX_INT256) && a.gt(MAX_INT256) ||
@@ -567,7 +567,7 @@ export class Commenter {
 
             a = a.mod(b);
 
-            if (negateResult) a = a.negate();
+            if (negateResult) { a = a.negate(); }
 
             this.stack.push(("0x" + a.toString(16).toLowerCase()));
         }
@@ -673,7 +673,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(a).add(U256(b)).toString(16)
+                "0x" + uint256(a).add(uint256(b)).toString(16)
             );
         }
         catch (err) {
@@ -688,7 +688,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(a).mul(U256(b)).toString(16)
+                "0x" + uint256(a).mul(uint256(b)).toString(16)
             );
         }
         catch (err) {
@@ -703,7 +703,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(a).sub(U256(b)).toString(16)
+                "0x" + uint256(a).sub(uint256(b)).toString(16)
             );
         }
         catch (err) {
@@ -718,7 +718,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(a).div(U256(b)).toString(16)
+                "0x" + uint256(a).div(uint256(b)).toString(16)
             );
         }
         catch (err) {
@@ -733,7 +733,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(a).mod(U256(b)).toString(16)
+                "0x" + uint256(a).mod(uint256(b)).toString(16)
             );
         }
         catch (err) {
@@ -748,7 +748,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(a).pow(parseInt(b)).toString(16)
+                "0x" + uint256(a).pow(parseInt(b)).toString(16)
             );
         }
         catch (err) {
@@ -762,8 +762,8 @@ export class Commenter {
         let rval = this.stack.pop();
 
         try {
-            let a = U256(lval);
-            let b = U256(rval);
+            let a = uint256(lval);
+            let b = uint256(rval);
 
             a = a.gt(MAX_INT256) ? a.negate() : a;
             b = b.gt(MAX_INT256) ? b.negate() : b;
@@ -780,8 +780,8 @@ export class Commenter {
         let rval = this.stack.pop();
 
         try {
-            let a = U256(lval);
-            let b = U256(rval);
+            let a = uint256(lval);
+            let b = uint256(rval);
 
             a = a.gt(MAX_INT256) ? a.negate() : a;
             b = b.gt(MAX_INT256) ? b.negate() : b;
@@ -799,7 +799,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(a).and(U256(b)).toString(16)
+                "0x" + uint256(a).and(uint256(b)).toString(16)
             );
         }
         catch (err) {
@@ -814,7 +814,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(a).xor(U256(b)).toString(16)
+                "0x" + uint256(a).xor(uint256(b)).toString(16)
             );
         }
         catch (err) {
@@ -828,7 +828,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(a).not().toString(16)
+                "0x" + uint256(a).not().toString(16)
             );
         }
         catch (err) {
@@ -843,7 +843,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(b).shl(parseInt(a)).toString(16)
+                "0x" + uint256(b).shl(parseInt(a)).toString(16)
             );
         }
         catch (err) {
@@ -858,7 +858,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(b).shr(parseInt(a)).toString(16)
+                "0x" + uint256(b).shr(parseInt(a)).toString(16)
             );
         }
         catch (err) {
@@ -880,7 +880,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(b).sar(parseInt(a)).toString(16)
+                "0x" + uint256(b).sar(parseInt(a)).toString(16)
             );
         }
         catch (err) {
@@ -903,7 +903,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                U256(a).lt(U256(b)) ? "0x1" : "0x0"
+                uint256(a).lt(uint256(b)) ? "0x1" : "0x0"
             );
         }
         catch (err) {
@@ -918,7 +918,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                U256(a).gt(U256(b)) ? "0x1" : "0x0"
+                uint256(a).gt(uint256(b)) ? "0x1" : "0x0"
             );
         }
         catch (err) {
@@ -933,7 +933,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                U256(a).eq(U256(b)) ? "0x1" : "0x0"
+                uint256(a).eq(uint256(b)) ? "0x1" : "0x0"
             );
         }
         catch (err) {
@@ -948,7 +948,7 @@ export class Commenter {
 
         try {
             this.stack.push(
-                "0x" + U256(a).or(U256(b)).toString(16)
+                "0x" + uint256(a).or(uint256(b)).toString(16)
             );
         }
         catch (err) {

@@ -245,9 +245,9 @@ export class UInt256 {
     lval = lval.gt(maxInt256) ? lval.negate() : lval;
     rval = rval.gt(maxInt256) ? rval.negate() : rval;
 
-    lval = lval.div(rval)
+    lval = lval.div(rval);
 
-    if(negateResult) lval = lval = lval.negate();
+    if(negateResult) { lval = lval = lval.negate(); }
 
     return lval.optimize();
   }
@@ -282,9 +282,9 @@ export class UInt256 {
     lval = lval.gt(maxInt256) ? lval.negate() : lval;
     rval = rval.gt(maxInt256) ? rval.negate() : rval;
 
-    lval = lval.mod(rval)
+    lval = lval.mod(rval);
 
-    if(negateResult) lval = lval = lval.negate();
+    if(negateResult) { lval = lval = lval.negate(); }
 
     return lval.optimize();
   }
@@ -694,9 +694,9 @@ export class UInt256 {
 }
 
 /* tslint:disable:function-name */
-export function U256(num: number | ArrayBuffer): UInt256;
-export function U256(str: string, radix?: number): UInt256;
-export function U256(param: string | number | ArrayBuffer, param2?: number): UInt256 {
+export function uint256(num: number | ArrayBuffer): UInt256;
+export function uint256(str: string, radix?: number): UInt256;
+export function uint256(param: string | number | ArrayBuffer, param2?: number): UInt256 {
   if (typeof param === 'string') {
     return new UInt256(param, param2);
   }

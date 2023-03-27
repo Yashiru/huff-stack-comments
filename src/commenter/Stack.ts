@@ -13,7 +13,7 @@ export class Stack{
     public cache(persistentCount?: number){
         let stackToCache = [...this.stackValues];
         this.stackValues = [];
-        if(persistentCount != null && persistentCount > 0){
+        if(persistentCount !== undefined && persistentCount > 0){
             this.stackValues = this.stackValues.concat(
                 stackToCache.slice(0, persistentCount)
             );
@@ -29,12 +29,12 @@ export class Stack{
             const tempStack = this.stackValues;
             this.stackValues = [...this.cachedStacks[this.cachedStacks.length-1]];
             this.cachedStacks.pop();
-            if(persistentCount != null && persistentCount > 0){
+            if(persistentCount !== undefined && persistentCount > 0){
                 this.stackValues = tempStack.slice(0, persistentCount).concat(this.stackValues);
             }
         }
         else{
-            this.stackValues = []
+            this.stackValues = [];
         }
     }
 
