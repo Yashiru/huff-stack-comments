@@ -8,7 +8,7 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
     createToken({ name: "comments", pattern: /\/\*.*\*\//, group: Lexer.SKIPPED }),
     createToken({ name: "multiline comments", pattern: /\/\*(.|\n)*\*\//, group: Lexer.SKIPPED }),
     /* ---------------------------- Huff definitions ---------------------------- */
-    createToken({ name: "defineMacro", pattern: /#define macro [0-9a-zA-Z_]*\([0-9a-zA-Z_]*\)( )?=( )?takes( )?\([0-9]*\) returns( )?\([0-9]*\)( )?{/ }),
+    createToken({ name: "defineMacro", pattern: /#define macro [0-9a-zA-Z_]*\([0-9a-zA-Z_, ]*\)( )?=( )?takes( )?\([0-9]*\) returns( )?\([0-9]*\)( )?{/ }),
     createToken({ name: "defineFunction", pattern: /#define function [0-9a-zA-Z_]*\([0-9a-z, ]*\)( )?.*returns( )?\(.*\)/ }),
     createToken({ name: "defineEvent", pattern: /#define event [0-9a-zA-Z_]*\([0-9a-z, ]*\)/ }),
     createToken({ name: "defineError", pattern: /#define error [0-9a-zA-Z_]*\([0-9a-z, ]*\)/ }),
