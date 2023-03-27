@@ -18,5 +18,14 @@ export function getCommentFor(doc: string){
 	);
 
 	const commenter = new Commenter(doc, lexingResult.tokens);
+
 	return commenter.getStackComments().slice(-1);
+}
+
+export function getTokensFor(doc: string){
+	const lexingResult = LEXER.tokenize(
+		doc
+	);
+
+	return lexingResult.tokens;
 }
