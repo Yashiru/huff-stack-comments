@@ -134,9 +134,10 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
     createToken({ name: "eq", pattern: /eq/ }),
     createToken({ name: "or", pattern: /or/ }),
     createToken({ name: "pc", pattern: /pc/ }),
-    createToken({ name: "end of block", pattern: /}/ }),
+    createToken({ name: "blockEnd", pattern: /}/ }),
 ];
 
 export const HUFF_CHILDREN_TOKENS: TokenType[] = [
     createToken({ name: "takes", pattern: /takes\([0-9]*\)/ }),
+    createToken({ name: "returns", pattern: /returns\([0-9]*\)/ }),
 ];

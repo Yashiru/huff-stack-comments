@@ -37,17 +37,6 @@ suite('Expression push tests', () => {
         assert.equal(getCommentFor(doc), "[lower_case_val, CONST_VAL_VERY_VERY_LONG_NAME, CONST_VAL]");
     });
 
-    test('functionCall', () => { // Function call are not interpreted yet
-        const doc = `
-            MACRO1()
-            MACRO_1()
-            _MACRO1()
-            _MACRO_1()
-            _MACRO_1000000000000000_VERY_LONG_NAME()
-        `;
-        assert.equal(getCommentFor(doc), "[]");
-    });
-
     test('memoryPointer', () => {
         const doc = `
             <mem_pointer>

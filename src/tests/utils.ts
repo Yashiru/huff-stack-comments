@@ -22,6 +22,16 @@ export function getCommentFor(doc: string){
 	return commenter.getStackComments().slice(-1);
 }
 
+export function getAllCommentFor(doc: string){
+	const lexingResult = LEXER.tokenize(
+		doc
+	);
+
+	const commenter = new Commenter(doc, lexingResult.tokens);
+
+	return commenter.getStackComments();
+}
+
 export function getTokensFor(doc: string){
 	const lexingResult = LEXER.tokenize(
 		doc
