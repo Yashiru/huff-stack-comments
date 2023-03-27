@@ -1,4 +1,5 @@
 export class Stack{
+    private cachedStacks: string[][] = [[]];
     private stackValues: string[] = [];
 
     constructor(initialStack?: string[]){
@@ -8,6 +9,35 @@ export class Stack{
     public reset(initialStack?: string[]){
         this.stackValues = initialStack || [];
     }
+
+    public cache(persistentCount?: number){
+        let stackToCache = [...this.stackValues];
+        this.stackValues = [];
+        if(persistentCount != null && persistentCount > 0){
+            this.stackValues = this.stackValues.concat(
+                stackToCache.slice(0, persistentCount)
+            );
+            this.cachedStacks.push(stackToCache.slice(persistentCount, stackToCache.length));
+        }
+        else{
+            this.cachedStacks.push(stackToCache);
+        }
+    }
+
+    public uncache(persistentCount?: number){
+        if(this.cachedStacks.length > 0){
+            const tempStack = this.stackValues;
+            this.stackValues = [...this.cachedStacks[this.cachedStacks.length-1]];
+            this.cachedStacks.pop();
+            if(persistentCount != null && persistentCount > 0){
+                this.stackValues = tempStack.slice(0, persistentCount).concat(this.stackValues);
+            }
+        }
+        else{
+            this.stackValues = []
+        }
+    }
+
     public push(value: string){
         this.stackValues.unshift(value);
     }
