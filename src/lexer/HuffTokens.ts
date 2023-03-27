@@ -17,7 +17,7 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
     /* ------------------------------- Expressions ------------------------------ */
     createToken({ name: "hexadecimal", pattern: /0[xX][0-9a-fA-F]+/ }),
     createToken({ name: "integer", pattern: /0|[1-9]\d*/ }),
-    createToken({ name: "variable", pattern: /\[[A-Z_]*]/ }),
+    createToken({ name: "variable", pattern: /\[[a-zA-Z_]*]/ }),
     createToken({ name: "functionCall", pattern: /[<>_a-zA-Z0-9]*\((.*)?\)/ }),
     createToken({ name: "memoryPointer", pattern: /\<[a-zA-Z0-9_]*\>/ }),
     // /* --------------------------------- OpCodes -------------------------------- */
