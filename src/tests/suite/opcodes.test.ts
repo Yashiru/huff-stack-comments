@@ -1,19 +1,8 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { Lexer } from 'chevrotain';
-import { HUFF_MAIN_TOKENS } from '../../lexer/HuffTokens';
-import { Commenter } from '../../commenter/Commenter';
-const lexer = new Lexer(HUFF_MAIN_TOKENS, {
-	lineTerminatorsPattern: /\n|\r|\u2028|\u2029/g,
-	lineTerminatorCharacters: [
-		"\n".charCodeAt(0),
-		"\r".charCodeAt(0),
-		"\u2028".charCodeAt(0),
-		"\u2029".charCodeAt(0)
-	]
-});
+import { getCommentFor } from '../utils';
 
-suite('OpCodes tests', () => {
+suite('OpCode tests', () => {
 	vscode.window.showInformationMessage('Start all tests.');
 
 	test('returndatasize', () => {
@@ -237,12 +226,12 @@ suite('OpCodes tests', () => {
 				2
 				0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 				addmod
-				[CONST_VAR]
+				[CONST_VAL]
 				0xa
 				codesize
 				addmod
 			`;
-		assert.equal(getCommentFor(doc), "[(codeSize + 0xa) % CONST_VAR, 0x1, 0xa]");
+		assert.equal(getCommentFor(doc), "[(codeSize + 0xa) % CONST_VAL, 0x1, 0xa]");
 	});
 
 	test('mulmod', () => {
@@ -255,12 +244,12 @@ suite('OpCodes tests', () => {
 				0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 				0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 				mulmod
-				[CONST_VAR]
+				[CONST_VAL]
 				0xa
 				codesize
 				mulmod
 			`;
-		assert.equal(getCommentFor(doc), "[(codeSize * 0xa) % CONST_VAR, 0x1, 0x4]");
+		assert.equal(getCommentFor(doc), "[(codeSize * 0xa) % CONST_VAL, 0x1, 0x4]");
 	});
 
 	test('iszero', () => {
@@ -271,12 +260,12 @@ suite('OpCodes tests', () => {
 				iszero
 				0
 				iszero
-				[CONST_VAR]
+				[CONST_VAL]
 				iszero
 				codesize
 				iszero
 			`;
-		assert.equal(getCommentFor(doc), "[codeSize==0, CONST_VAR==0, 1, 1, 0]");
+		assert.equal(getCommentFor(doc), "[codeSize==0, CONST_VAL==0, 1, 1, 0]");
 	});
 
 	test('origin', () => {
@@ -395,19 +384,19 @@ suite('OpCodes tests', () => {
 	test('mload', () => {
 		const doc = `
 				0x00 mload
-				[CONST_VAR] mload
-				[CONST_VAR_VERY_LONG_NAME] mload
+				[CONST_VAL] mload
+				[CONST_VAL_VERY_LONG_NAME] mload
 			`;
-		assert.equal(getCommentFor(doc), "[mem[CONS...ME], mem[CONST_VAR], mem[0x00]]");
+		assert.equal(getCommentFor(doc), "[mem[CONS...ME], mem[CONST_VAL], mem[0x00]]");
 	});
 
 	test('sload', () => {
 		const doc = `
 				0x00 sload
-				[CONST_VAR] sload
+				[CONST_VAL] sload
 				0x4242424242424242424242424242424242424242424242424242424242424242 sload
 			`;
-		assert.equal(getCommentFor(doc), "[storage[0x42...42], storage[CONST_VAR], storage[0x00]]");
+		assert.equal(getCommentFor(doc), "[storage[0x42...42], storage[CONST_VAL], storage[0x00]]");
 	});
 
 	test('jumpi', () => {
@@ -724,11 +713,11 @@ suite('OpCodes tests', () => {
 				0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 				2
 				add
-				[CONST_VAR]
+				[CONST_VAL]
 				codesize
 				add
 			`;
-		assert.equal(getCommentFor(doc), "[codeSize + CONST_VAR, 0x1, 0x14]");
+		assert.equal(getCommentFor(doc), "[codeSize + CONST_VAL, 0x1, 0x14]");
 	});
 
 	test('mul', () => {
@@ -739,11 +728,11 @@ suite('OpCodes tests', () => {
 				0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
 				2
 				mul
-				[CONST_VAR]
+				[CONST_VAL]
 				codesize
 				mul
 			`;
-		assert.equal(getCommentFor(doc), "[codeSize * CONST_VAR, 0xff...fe, 0x64]");
+		assert.equal(getCommentFor(doc), "[codeSize * CONST_VAL, 0xff...fe, 0x64]");
 	});
 
 	test('sub', () => {
@@ -754,11 +743,11 @@ suite('OpCodes tests', () => {
 				1
 				0
 				sub
-				[CONST_VAR]
+				[CONST_VAL]
 				codesize
 				sub
 			`;
-		assert.equal(getCommentFor(doc), "[codeSize - CONST_VAR, 0xff...f, 0x0]");
+		assert.equal(getCommentFor(doc), "[codeSize - CONST_VAL, 0xff...f, 0x0]");
 	});
 
 	test('div', () => {
@@ -769,11 +758,11 @@ suite('OpCodes tests', () => {
 				2
 				1
 				div
-				[CONST_VAR]
+				[CONST_VAL]
 				codesize
 				div
 			`;
-		assert.equal(getCommentFor(doc), "[codeSize / CONST_VAR, 0x0, 0x1]");
+		assert.equal(getCommentFor(doc), "[codeSize / CONST_VAL, 0x0, 0x1]");
 	});
 
 	test('mod', () => {
@@ -784,11 +773,11 @@ suite('OpCodes tests', () => {
 				5
 				17
 				mod
-				[CONST_VAR]
+				[CONST_VAL]
 				codesize
 				mod
 			`;
-		assert.equal(getCommentFor(doc), "[codeSize % CONST_VAR, 0x2, 0x1]");
+		assert.equal(getCommentFor(doc), "[codeSize % CONST_VAL, 0x2, 0x1]");
 	});
 
 	test('exp', () => {
@@ -799,11 +788,11 @@ suite('OpCodes tests', () => {
 				2
 				2
 				exp
-				[CONST_VAR]
+				[CONST_VAL]
 				codesize
 				exp
 			`;
-		assert.equal(getCommentFor(doc), "[codeSize ** CONST_VAR, 0x4, 0x64]");
+		assert.equal(getCommentFor(doc), "[codeSize ** CONST_VAL, 0x4, 0x64]");
 	});
 
 	test('slt', () => {
@@ -814,11 +803,11 @@ suite('OpCodes tests', () => {
 				10
 				10
 				slt
-				[CONST_VAR]
+				[CONST_VAL]
 				codesize
 				slt
 			`;
-		assert.equal(getCommentFor(doc), "[codeSize < CONST_VAR, 0x0, 0x1]");
+		assert.equal(getCommentFor(doc), "[codeSize < CONST_VAL, 0x0, 0x1]");
 	});
 
 	test('sgt', () => {
@@ -829,11 +818,11 @@ suite('OpCodes tests', () => {
 				10
 				10
 				sgt
-				[CONST_VAR]
+				[CONST_VAL]
 				codesize
 				sgt
 			`;
-		assert.equal(getCommentFor(doc), "[codeSize > CONST_VAR, 0x0, 0x1]");
+		assert.equal(getCommentFor(doc), "[codeSize > CONST_VAL, 0x0, 0x1]");
 	});
 
 	test('and', () => {
@@ -844,11 +833,11 @@ suite('OpCodes tests', () => {
 				0
 				0xFF
 				and
-				[CONST_VAR]
+				[CONST_VAL]
 				codesize
 				and
 			`;
-		assert.equal(getCommentFor(doc), "[codeSize & CONST_VAR, 0x0, 0xf]");
+		assert.equal(getCommentFor(doc), "[codeSize & CONST_VAL, 0x0, 0xf]");
 	});
 
 	test('xor', () => {
@@ -859,11 +848,11 @@ suite('OpCodes tests', () => {
 				0xFF
 				0xFF
 				xor
-				[CONST_VAR]
+				[CONST_VAL]
 				codesize
 				xor
 			`;
-		assert.equal(getCommentFor(doc), "[codeSize ^ CONST_VAR, 0x0, 0xff]");
+		assert.equal(getCommentFor(doc), "[codeSize ^ CONST_VAL, 0x0, 0xff]");
 	});
 
 	test('not', () => {
@@ -884,11 +873,11 @@ suite('OpCodes tests', () => {
 			0xFF00000000000000000000000000000000000000000000000000000000000000
 			4
 			shl
-			[CONST_VAR]
+			[CONST_VAL]
 			codesize
 			shl
 		`;
-		assert.equal(getCommentFor(doc), "[CONST_VAR << codeSize, 0xf00...0, 0x2]");
+		assert.equal(getCommentFor(doc), "[CONST_VAL << codeSize, 0xf00...0, 0x2]");
 	});
 
 	test('shr', () => {
@@ -899,11 +888,11 @@ suite('OpCodes tests', () => {
 			0xFF
 			4
 			shr
-			[CONST_VAR]
+			[CONST_VAL]
 			codesize
 			shr
 		`;
-		assert.equal(getCommentFor(doc), "[CONST_VAR >> codeSize, 0xf, 0x1]");
+		assert.equal(getCommentFor(doc), "[CONST_VAL >> codeSize, 0xf, 0x1]");
 	});
 
 	test('sar', () => {
@@ -914,11 +903,11 @@ suite('OpCodes tests', () => {
 			0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0
 			4
 			sar
-			[CONST_VAR]
+			[CONST_VAL]
 			codesize
 			sar
 		`;
-		assert.equal(getCommentFor(doc), "[CONST_VAR >> codeSize, 0xff...f, 0x1]");
+		assert.equal(getCommentFor(doc), "[CONST_VAL >> codeSize, 0xff...f, 0x1]");
 	});
 
 	test('pop', () => {
@@ -944,11 +933,11 @@ suite('OpCodes tests', () => {
 			10
 			10
 			lt
-			[CONST_VAR]
+			[CONST_VAL]
 			codesize
 			lt
 		`;
-		assert.equal(getCommentFor(doc), "[codeSize < CONST_VAR, 0x0, 0x1]");
+		assert.equal(getCommentFor(doc), "[codeSize < CONST_VAL, 0x0, 0x1]");
 	});
 
 	test('gt', () => {
@@ -959,11 +948,11 @@ suite('OpCodes tests', () => {
 			10
 			10
 			gt
-			[CONST_VAR]
+			[CONST_VAL]
 			codesize
 			gt
 		`;
-		assert.equal(getCommentFor(doc), "[codeSize > CONST_VAR, 0x0, 0x1]");
+		assert.equal(getCommentFor(doc), "[codeSize > CONST_VAL, 0x0, 0x1]");
 	});
 
 	test('eq', () => {
@@ -974,11 +963,11 @@ suite('OpCodes tests', () => {
 			5
 			10
 			eq
-			[CONST_VAR]
+			[CONST_VAL]
 			codesize
 			eq
 		`;
-		assert.equal(getCommentFor(doc), "[codeSize == CONST_VAR, 0x0, 0x1]");
+		assert.equal(getCommentFor(doc), "[codeSize == CONST_VAL, 0x0, 0x1]");
 	});
 
 	test('or', () => {
@@ -989,11 +978,11 @@ suite('OpCodes tests', () => {
 			0xFF
 			0xFF
 			or
-			[CONST_VAR]
+			[CONST_VAL]
 			codesize
 			or
 		`;
-		assert.equal(getCommentFor(doc), "[codeSize | CONST_VAR, 0xff, 0xff]");
+		assert.equal(getCommentFor(doc), "[codeSize | CONST_VAL, 0xff, 0xff]");
 	});
 
 	test('pc', () => {
@@ -1036,12 +1025,3 @@ suite('OpCodes tests', () => {
 	// 	assert.equal(getCommentFor(doc), "[]");
 	// });
 });
-
-function getCommentFor(doc: string){
-	const lexingResult = lexer.tokenize(
-		doc
-	);
-
-	const commenter = new Commenter(doc, lexingResult.tokens);
-	return commenter.getStackComments().slice(-1);
-}
