@@ -64,13 +64,14 @@ export class Commenter {
         let commentLines = [];
         for (this.ptr = 0; this.ptr < this.tokens.length; this.ptr++) {
             this.interpret(this.tokens[this.ptr]);
+            
             if (
                 (
                     this.tokens[this.ptr + 1] == null || 
                     this.tokens[this.ptr + 1].endLine! > this.tokens[this.ptr].endLine!
                 ) && 
-                this.tokens[this.ptr].tokenType.name != "end of block"
-            ) {
+                this.tokens[this.ptr].tokenType.name != "blockEnd"
+            ) {                
                 commentLines.push(this.stack.getStackComment());
             }
         }
@@ -98,9 +99,7 @@ export class Commenter {
     }
 
     private interpret(token: IToken) {
-        if ((this as any)[token.tokenType.name] != null) {
-            console.log(token.tokenType.name);
-            
+        if ((this as any)[token.tokenType.name] != null) {            
             (this as any)[token.tokenType.name](token);
         }
     }
@@ -112,7 +111,8 @@ export class Commenter {
         // TODO: remain old stack for "takes"
         const lexedToken = this.tokenLexer.tokenize(
             t.image
-        );
+        );       
+
         const takes: number = parseInt(
             lexedToken.tokens[0].image.slice(
                 6,
@@ -136,10 +136,7 @@ export class Commenter {
         }
         else {
             this.stack.cache(takes);
-        }
-
-        console.log("Entered macro "+t.image.match(/[<>_a-zA-Z0-9]*\(/)![0]+" with "+takes+" taken stack element", this.stack);
-        
+        }        
 
         this.lastMacro = {
             takes,
