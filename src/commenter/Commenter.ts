@@ -16,7 +16,9 @@ export class Commenter {
     private documentLines: string[];
     private tokens: IToken[];
     private stack: Stack = new Stack();
-    private tokenLexer = new Lexer(HUFF_CHILDREN_TOKENS);
+    private tokenLexer = new Lexer(HUFF_CHILDREN_TOKENS, {
+        positionTracking: "onlyOffset"
+    });
 
     private maxLineLength: number = 0;
 
