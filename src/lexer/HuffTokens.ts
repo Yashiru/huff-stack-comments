@@ -1,11 +1,18 @@
 import { createToken, Lexer, TokenType, TokenVocabulary } from "chevrotain";
 
 export const HUFF_MAIN_TOKENS: TokenType[] = [
-    // /* --------------------------------- Skipped -------------------------------- */
+    /* --------------------------------- Skipped -------------------------------- */
     createToken({ name: "whiteSpace", pattern: /\s+/, group: Lexer.SKIPPED }),
     createToken({ name: "comments", pattern: /\/\/.*/, group: Lexer.SKIPPED }),
     createToken({ name: "comments", pattern: /\/\*.*\*\//, group: Lexer.SKIPPED }),
     createToken({ name: "multiline comments", pattern: /\/\*(.|\n)*\*\//, group: Lexer.SKIPPED }),
+    /* ------------------------- Huff built-in function ------------------------- */
+    createToken({ name: "__FUNC_SIG", pattern: /__FUNC_SIG\(.*\)/, group: Lexer.SKIPPED }),
+    createToken({ name: "__EVENT_HASH", pattern: /__EVENT_HASH\(.*\)/, group: Lexer.SKIPPED }),
+    createToken({ name: "__ERROR", pattern: /__ERROR\(.*\)/, group: Lexer.SKIPPED }),
+    createToken({ name: "__RIGHTPAD", pattern: /__RIGHTPAD\(.*\)/, group: Lexer.SKIPPED }),
+    createToken({ name: "__codesize", pattern: /__codesize\(.*\)/, group: Lexer.SKIPPED }),
+    createToken({ name: "__tablestart", pattern: /__tablestart\(.*\)/, group: Lexer.SKIPPED }),
     /* ---------------------------- Huff definitions ---------------------------- */
     createToken({ name: "defineMacro", pattern: /#define macro [0-9a-zA-Z_]*\([0-9a-zA-Z_, ]*\)( )?=( )?takes( )?\([0-9]*\) returns( )?\([0-9]*\)( )?{/ }),
     createToken({ name: "defineFunction", pattern: /#define function [0-9a-zA-Z_]*\([0-9a-z, ]*\)( )?.*returns( )?\(.*\)/ }),
@@ -19,7 +26,7 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
     createToken({ name: "variable", pattern: /\[[a-zA-Z_]*]/ }),
     createToken({ name: "functionCall", pattern: /[<>_a-zA-Z0-9]*\((.*)?\)/ }),
     createToken({ name: "memoryPointer", pattern: /\<[a-zA-Z0-9_]*\>/ }),
-    // /* --------------------------------- OpCodes -------------------------------- */
+    /* --------------------------------- OpCodes -------------------------------- */
     createToken({ name: "returndatasize", pattern: /returndatasize/ }),
     createToken({ name: "returndatacopy", pattern: /returndatacopy/ }),
     createToken({ name: "calldataload", pattern: /calldataload/ }),
@@ -137,6 +144,6 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
 ];
 
 export const HUFF_CHILDREN_TOKENS: TokenType[] = [
-    createToken({ name: "takes", pattern: /takes\([0-9]*\)/ }),
-    createToken({ name: "returns", pattern: /returns\([0-9]*\)/ }),
+    createToken({ name: "takes", pattern: /takes( )?\([0-9]*\)/ }),
+    createToken({ name: "returns", pattern: /returns( )?\([0-9]*\)/ })
 ];
