@@ -2,15 +2,17 @@ import { IToken, Lexer, TokenType } from "chevrotain";
 import { HUFF_CHILDREN_TOKENS } from "../lexer/HuffTokens";
 import { Stack } from "./Stack";
 import { UInt256, uint256 } from "../uint256/uint256";
-import * as vscode from 'vscode';
 import { HuffMacro } from "../interfaces/HuffMacro";
+import * as vscode from 'vscode';
+import { getDefinition, getMacroDefinitionIndexOf, getParenthesisContent, getSignatureOf } from "../utils";
 
+const keccak256 = require('keccak256');
 const MAX_INT256 = new UInt256("0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 const editor = vscode.window.activeTextEditor!;
 
 export class Commenter {
     private ptr: number = 0;
-    private tempPtr: number = null!;
+    private cachedPtr: number[] = [];
     private callDepth: number = 0;
 
     private documentLines: string[];
@@ -34,22 +36,27 @@ export class Commenter {
         }
     }
 
+    /**
+     * Replace the document content by the new one with the generated comments
+     */
     public generateStackComments() {
         for (this.ptr = 0; this.ptr < this.tokens.length; this.ptr++) {
-            this.interpret(this.tokens[this.ptr]);
+            console.log(this.tokens[this.ptr]);
             
+            this.interpret(this.tokens[this.ptr]);
+
             if (
                 (
-                    this.tokens[this.ptr + 1] === undefined || 
+                    this.tokens[this.ptr + 1] === undefined ||
                     this.tokens[this.ptr + 1].endLine! > this.tokens[this.ptr].endLine!
-                ) && 
+                ) &&
                 this.tokens[this.ptr].tokenType.name !== "blockEnd"
             ) {
-                this.documentLines[this.tokens[this.ptr].endLine! - 1] = 
+                this.documentLines[this.tokens[this.ptr].endLine! - 1] =
                     this.documentLines[this.tokens[this.ptr].endLine! - 1]
                         .replace(/\/\/.*/, '')
-                        .padEnd(this.maxLineLength + 1, " ") 
-                    + "// " 
+                        .padEnd(this.maxLineLength + 1, " ")
+                    + "// "
                     + this.stack.getStackComment();
             }
         }
@@ -62,18 +69,22 @@ export class Commenter {
         });
     }
 
+    /**
+     * Compute and return the array of all the generated comments
+     * @returns Comments array
+     */
     public getStackComments() {
         let commentLines = [];
         for (this.ptr = 0; this.ptr < this.tokens.length; this.ptr++) {
             this.interpret(this.tokens[this.ptr]);
-            
+
             if (
                 (
-                    this.tokens[this.ptr + 1] === undefined || 
+                    this.tokens[this.ptr + 1] === undefined ||
                     this.tokens[this.ptr + 1].endLine! > this.tokens[this.ptr].endLine!
-                ) && 
+                ) &&
                 this.tokens[this.ptr].tokenType.name !== "blockEnd"
-            ) {                
+            ) {
                 commentLines.push(this.stack.getStackComment());
             }
         }
@@ -85,23 +96,8 @@ export class Commenter {
     /*                              PRIVATE FUNCTIONS                             */
     /* -------------------------------------------------------------------------- */
 
-    private getDefineIndexOf(target: IToken): number {
-        const regex = /.*\(/g;
-        let i = 0;
-        for (let token of this.tokens) {
-            if (
-                token.image.indexOf(target.image.match(regex)![0]) !== -1 &&
-                token.image.indexOf("#define macro") !== -1
-            ) {
-                return i-1;
-            }
-            i++;
-        }
-        return this.ptr+1;
-    }
-
     private interpret(token: IToken) {
-        if ((this as any)[token.tokenType.name] !== undefined) {            
+        if ((this as any)[token.tokenType.name] !== undefined) {
             (this as any)[token.tokenType.name](token);
         }
     }
@@ -109,11 +105,12 @@ export class Commenter {
     /* -------------------------------------------------------------------------- */
     /*                              INTERPRET TOKENS                              */
     /* -------------------------------------------------------------------------- */
+
     private defineMacro(t: IToken) {
         // TODO: remain old stack for "takes"
         const lexedToken = this.tokenLexer.tokenize(
             t.image
-        );       
+        );
 
         const takes: number = parseInt(
             lexedToken.tokens[0].image.slice(
@@ -138,7 +135,7 @@ export class Commenter {
         }
         else {
             this.stack.cache(takes);
-        }        
+        }
 
         this.lastMacro = {
             takes,
@@ -146,17 +143,21 @@ export class Commenter {
         };
     }
 
-
     private functionCall(t: IToken) {
         this.callDepth++;
-        this.tempPtr = this.ptr;
-        this.ptr = this.getDefineIndexOf(this.tokens[this.ptr]);
+        const tempPtr = this.ptr;
+        this.ptr = getMacroDefinitionIndexOf(this.tokens[this.ptr], this.tokens, this.ptr);
+        if(tempPtr !== this.ptr){
+            this.cachedPtr.push(tempPtr);
+        }
     }
 
     private blockEnd(t: IToken) {
         this.callDepth -= this.callDepth > 0 ? 1 : 0;
-        this.ptr = this.tempPtr !== null ? this.tempPtr : this.ptr;
-        this.tempPtr = null!;
+        if(this.cachedPtr.slice(-1).length){
+            this.ptr = this.cachedPtr.slice(-1)[0];
+            this.cachedPtr.pop();
+        }
         this.stack.uncache(this.lastMacro.returns);
     }
 
@@ -961,4 +962,66 @@ export class Commenter {
         this.stack.push("PC");
     }
 
+    /* -------------------------------------------------------------------------- */
+    /*                           HUFF BUILT IN FUNCTIONS                          */
+    /* -------------------------------------------------------------------------- */
+
+    private __FUNC_SIG(t: IToken) {
+        this.stack.push(
+            getSignatureOf(
+                getDefinition(t, "function", this.tokens)
+            )
+        );
+    }
+
+    private __EVENT_HASH(t: IToken) {
+        this.stack.push(
+            getSignatureOf(
+                getDefinition(t, "event", this.tokens)
+            )
+        );
+    }
+
+    private __ERROR(t: IToken) {
+        this.stack.push(
+            getSignatureOf(
+                getDefinition(t, "error", this.tokens)
+            )
+        );
+    }
+
+    private __RIGHTPAD(t: IToken) {
+        const val = getParenthesisContent(t.image).match(/0[xX][0-9a-fA-F]+/);
+
+        if(val !== undefined && val !== null && val!.length > 0){
+            const hex = val[0].slice(2, val[0].length).padStart(64, "0");
+            this.stack.push(
+                "0x"+hex
+            );
+        }
+        else{
+            this.stack.push(
+                t.image
+            );
+        }
+
+    }
+
+    private __codesize(t: IToken) {
+        this.stack.push(
+            t.image
+        );
+    }
+
+    private __tablestart(t: IToken) {
+        this.stack.push(
+            t.image
+        );
+    }
+
+    private __tablesize(t: IToken) {
+        this.stack.push(
+            t.image
+        );
+    }
 }
