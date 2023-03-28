@@ -10,7 +10,7 @@ const keccak256 = require('keccak256');
 const MAX_INT256 = new UInt256("0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 const editor = vscode.window.activeTextEditor!;
 
-export class Commenter {
+export class Executor {
     private ptr: number = 0;
     private cachedPtr: number[] = [];
     private callDepth: number = 0;

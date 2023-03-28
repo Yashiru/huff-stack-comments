@@ -1,6 +1,6 @@
 import { Lexer } from 'chevrotain';
 import * as vscode from 'vscode';
-import { Commenter } from './commenter/Commenter';
+import { Executor } from './executor/Executor';
 import { HUFF_MAIN_TOKENS } from './lexer/HuffTokens';
 import { LexicErrorHandler } from './lexer/LexicErrorHandler';
 
@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
 			LexicErrorHandler.handleErrors(lexingResult.errors);
 
 			// Generate stack comments
-			const commenter = new Commenter(document, lexingResult.tokens);
+			const commenter = new Executor(document, lexingResult.tokens);
 			commenter.generateStackComments();
 
 			vscode.window.showInformationMessage('Huff: Stack comments generated.');
