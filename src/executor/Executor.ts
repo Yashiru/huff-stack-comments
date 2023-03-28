@@ -5,12 +5,15 @@ import { UInt256, uint256 } from "../uint256/uint256";
 import { HuffMacro } from "../interfaces/HuffMacro";
 import * as vscode from 'vscode';
 import { getDefinition, getMacroDefinitionIndexOf, getParenthesisContent, getSignatureOf } from "../utils";
+import { MAX_INT256 } from "../uint256/arithmetic";
+import { Memory } from "../memory/memory";
 
 const keccak256 = require('keccak256');
-const MAX_INT256 = new UInt256("0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 const editor = vscode.window.activeTextEditor!;
 
 export class Executor {
+    private memory: Memory = new Memory();
+
     private ptr: number = 0;
     private cachedPtr: number[] = [];
     private callDepth: number = 0;
@@ -309,7 +312,22 @@ export class Executor {
     }
 
     private mstore8(t: IToken) {
-        this.mstore(t);
+        const a = this.stack.pop();
+        const b = this.stack.pop();
+
+        try{
+            const offset = uint256(a);
+            let val = uint256(b);
+
+            val = val.shl(
+                256 - Math.ceil(val.toString(16).length / 2) * 8
+            );
+
+            this.memory.mstore(val, parseInt(offset.toString()));
+        }
+        catch(_) {
+            // Nothing
+        }
     }
 
     private create2(t: IToken) {
@@ -383,12 +401,23 @@ export class Executor {
     }
 
     private mstore(t: IToken) {
-        this.stack.pop();
-        this.stack.pop();
+        const a = this.stack.pop();
+        const b = this.stack.pop();
+
+        try{
+            const offset = uint256(a);
+            const val = uint256(b);
+
+            this.memory.mstore(val, parseInt(offset.toString()));
+        }
+        catch(_) {
+            // Nothing
+        }
     }
 
     private sstore(t: IToken) {
-        this.mstore(t);
+        this.stack.pop();
+        this.stack.pop();
     }
 
     private swap10(t: IToken) {
@@ -438,9 +467,18 @@ export class Executor {
 
     private mload(t: IToken) {
         let ptr = this.stack.pop();
-        ptr = ptr.length > 10 ? ptr.slice(0, 4) + "..." + ptr.slice(-2) : ptr;
 
-        this.stack.push(`mem[${ptr}]`);
+        try{
+            const value = this.memory.mload(
+                parseInt(uint256(ptr).toString())
+            );
+
+            this.stack.push("0x"+value.toString(16));
+        }
+        catch(err){
+            ptr = ptr.length > 10 ? ptr.slice(0, 4) + "..." + ptr.slice(-2) : ptr;
+            this.stack.push(`mem[${ptr}]`);
+        }
     }
 
     private sload(t: IToken) {
@@ -534,11 +572,11 @@ export class Executor {
             let b = uint256(rval);
 
             const negateResult =
-                b.gt(MAX_INT256) && !a.gt(MAX_INT256) ||
-                a.gt(MAX_INT256) && !b.gt(MAX_INT256);
+                b.gt(uint256(MAX_INT256)) && !a.gt(uint256(MAX_INT256)) ||
+                a.gt(uint256(MAX_INT256)) && !b.gt(uint256(MAX_INT256));
 
-            a = a.gt(MAX_INT256) ? a.negate() : a;
-            b = b.gt(MAX_INT256) ? b.negate() : b;
+            a = a.gt(uint256(MAX_INT256)) ? a.negate() : a;
+            b = b.gt(uint256(MAX_INT256)) ? b.negate() : b;
 
             a = a.div(b);
 
@@ -560,11 +598,11 @@ export class Executor {
             let b = uint256(rval);
 
             const negateResult =
-                b.gt(MAX_INT256) && a.gt(MAX_INT256) ||
-                a.gt(MAX_INT256);
+                b.gt(uint256(MAX_INT256)) && a.gt(uint256(MAX_INT256)) ||
+                a.gt(uint256(MAX_INT256));
 
-            a = a.gt(MAX_INT256) ? a.negate() : a;
-            b = b.gt(MAX_INT256) ? b.negate() : b;
+            a = a.gt(uint256(MAX_INT256)) ? a.negate() : a;
+            b = b.gt(uint256(MAX_INT256)) ? b.negate() : b;
 
             a = a.mod(b);
 
@@ -766,8 +804,8 @@ export class Executor {
             let a = uint256(lval);
             let b = uint256(rval);
 
-            a = a.gt(MAX_INT256) ? a.negate() : a;
-            b = b.gt(MAX_INT256) ? b.negate() : b;
+            a = a.gt(uint256(MAX_INT256)) ? a.negate() : a;
+            b = b.gt(uint256(MAX_INT256)) ? b.negate() : b;
 
             this.stack.push(a.lt(b) ? "0x1" : "0x0");
         }
@@ -784,8 +822,8 @@ export class Executor {
             let a = uint256(lval);
             let b = uint256(rval);
 
-            a = a.gt(MAX_INT256) ? a.negate() : a;
-            b = b.gt(MAX_INT256) ? b.negate() : b;
+            a = a.gt(uint256(MAX_INT256)) ? a.negate() : a;
+            b = b.gt(uint256(MAX_INT256)) ? b.negate() : b;
 
             this.stack.push(a.gt(b) ? "0x1" : "0x0");
         }

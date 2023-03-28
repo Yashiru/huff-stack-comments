@@ -1,6 +1,7 @@
 import { Lexer } from "chevrotain";
 import { Executor } from "../executor/Executor";
 import { HUFF_MAIN_TOKENS } from "../lexer/HuffTokens";
+import { UInt256 } from "../uint256";
 
 export const LEXER = new Lexer(HUFF_MAIN_TOKENS, {
 	lineTerminatorsPattern: /\n|\r|\u2028|\u2029/g,

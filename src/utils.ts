@@ -2,7 +2,6 @@ import { IToken } from "chevrotain";
 import { UInt256, uint256 } from "./uint256/uint256";
 const keccak256 = require('keccak256');
 
-
 export function getMacroDefinitionIndexOf(target: IToken, tokens: IToken[], defaultPtr: number): number {
     const regex = /.*\(/g;
     let i = 0;
