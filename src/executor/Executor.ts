@@ -43,14 +43,13 @@ export class Executor {
      * Replace the document content by the new one with the generated comments
      */
     public generateStackComments() {
-        for (this.ptr = 0; this.ptr < this.tokens.length; this.ptr++) {
-            console.log(this.tokens[this.ptr]);
-            
+        for (this.ptr = 0; this.ptr < this.tokens.length; this.ptr++) {            
             this.interpret(this.tokens[this.ptr]);
 
             if (
                 (
                     this.tokens[this.ptr + 1] === undefined ||
+                    this.tokens[this.ptr + 1] === null ||
                     this.tokens[this.ptr + 1].endLine! > this.tokens[this.ptr].endLine!
                 ) &&
                 this.tokens[this.ptr].tokenType.name !== "blockEnd"
@@ -84,6 +83,7 @@ export class Executor {
             if (
                 (
                     this.tokens[this.ptr + 1] === undefined ||
+                    this.tokens[this.ptr + 1] === null ||
                     this.tokens[this.ptr + 1].endLine! > this.tokens[this.ptr].endLine!
                 ) &&
                 this.tokens[this.ptr].tokenType.name !== "blockEnd"
@@ -116,13 +116,13 @@ export class Executor {
         );
 
         const takes: number = parseInt(
-            lexedToken.tokens[0].image.slice(
+            lexedToken.tokens[0].image.replace(" ", "").slice(
                 6,
                 lexedToken.tokens[0].image.length - 1
             )
         );
         const returns: number = parseInt(
-            lexedToken.tokens[1].image.slice(
+            lexedToken.tokens[1].image.replace(" ", "").slice(
                 8,
                 lexedToken.tokens[1].image.length - 1
             )
