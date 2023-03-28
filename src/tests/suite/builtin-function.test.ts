@@ -79,7 +79,7 @@ suite('Huff built-in functions', () => {
         assert.equal(getCommentFor(doc), "[__codesize(MACRO1)]");
     });
 
-    test.only('__tablestart', () => {
+    test('__tablestart', () => {
         let doc = `
             __tablestart(10)
         `;

@@ -4,6 +4,7 @@ import { Stack } from "./Stack";
 import { UInt256, uint256 } from "../uint256/uint256";
 import { HuffMacro } from "../interfaces/HuffMacro";
 import * as vscode from 'vscode';
+import { getDefinition, getMacroDefinitionIndexOf, getParenthesisContent, getSignatureOf } from "../utils";
 
 const keccak256 = require('keccak256');
 const MAX_INT256 = new UInt256("0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
@@ -11,7 +12,7 @@ const editor = vscode.window.activeTextEditor!;
 
 export class Commenter {
     private ptr: number = 0;
-    private tempPtr: number = null!;
+    private cachedPtr: number[] = [];
     private callDepth: number = 0;
 
     private documentLines: string[];
@@ -40,6 +41,8 @@ export class Commenter {
      */
     public generateStackComments() {
         for (this.ptr = 0; this.ptr < this.tokens.length; this.ptr++) {
+            console.log(this.tokens[this.ptr]);
+            
             this.interpret(this.tokens[this.ptr]);
 
             if (
@@ -93,68 +96,9 @@ export class Commenter {
     /*                              PRIVATE FUNCTIONS                             */
     /* -------------------------------------------------------------------------- */
 
-    private getMacroDefinitionIndexOf(target: IToken): number {
-        const regex = /.*\(/g;
-        let i = 0;
-        for (let token of this.tokens) {
-            if (
-                token.image.indexOf(target.image.match(regex)![0]) !== -1 &&
-                token.image.indexOf("#define macro") !== -1
-            ) {
-                return i - 1;
-            }
-            i++;
-        }
-        return this.ptr + 1;
-    }
-
-    private getDefinition(target: IToken, defType: string): string {
-        const regex = /\(.*\)/g;
-        let i = 0;
-        for (let token of this.tokens) {
-            const def = target.image.match(regex)![0];
-            if (
-                token.image.indexOf(def.slice(1, def.length-1)) !== -1 &&
-                token.image.indexOf("#define "+defType) !== -1
-            ) {
-                return token.image.match(/[0-9a-zA-Z_]*\([0-9a-z, ]*\)/)![0].replace(" ", "");
-            }
-            i++;
-        }
-        return this.getParenthesisContent(target.image);
-    }
-
     private interpret(token: IToken) {
         if ((this as any)[token.tokenType.name] !== undefined) {
             (this as any)[token.tokenType.name](token);
-        }
-    }
-
-    private getSignatureOf(def: string){
-        return "0x"+uint256(
-            keccak256(def).reverse().buffer
-        ).toString(16).slice(0, 8);
-    }
-
-    private getParenthesisContent(expr: string){
-        const regex = /\(.*\)/g;
-        let val = expr.match(regex);
-        if(val !== null && val !== undefined && val.length > 0){
-            return val[0].slice(1, val[0].length-1);
-        }
-        else{
-            return expr;
-        }
-    }
-
-    private getJumptableName(def: string): string{
-        const regex = /#define jumptable [0-9a-zA-Z_]*/;
-        const res = def.match(regex);
-        if(res !== null && res !== undefined && res.length > 0){
-            return res[0].slice(18, res.length);
-        }
-        else{
-            return def;
         }
     }
 
@@ -201,14 +145,19 @@ export class Commenter {
 
     private functionCall(t: IToken) {
         this.callDepth++;
-        this.tempPtr = this.ptr;
-        this.ptr = this.getMacroDefinitionIndexOf(this.tokens[this.ptr]);
+        const tempPtr = this.ptr;
+        this.ptr = getMacroDefinitionIndexOf(this.tokens[this.ptr], this.tokens, this.ptr);
+        if(tempPtr !== this.ptr){
+            this.cachedPtr.push(tempPtr);
+        }
     }
 
     private blockEnd(t: IToken) {
         this.callDepth -= this.callDepth > 0 ? 1 : 0;
-        this.ptr = this.tempPtr !== null ? this.tempPtr : this.ptr;
-        this.tempPtr = null!;
+        if(this.cachedPtr.slice(-1).length){
+            this.ptr = this.cachedPtr.slice(-1)[0];
+            this.cachedPtr.pop();
+        }
         this.stack.uncache(this.lastMacro.returns);
     }
 
@@ -1019,30 +968,30 @@ export class Commenter {
 
     private __FUNC_SIG(t: IToken) {
         this.stack.push(
-            this.getSignatureOf(
-                this.getDefinition(t, "function")
+            getSignatureOf(
+                getDefinition(t, "function", this.tokens)
             )
         );
     }
 
     private __EVENT_HASH(t: IToken) {
         this.stack.push(
-            this.getSignatureOf(
-                this.getDefinition(t, "event")
+            getSignatureOf(
+                getDefinition(t, "event", this.tokens)
             )
         );
     }
 
     private __ERROR(t: IToken) {
         this.stack.push(
-            this.getSignatureOf(
-                this.getDefinition(t, "error")
+            getSignatureOf(
+                getDefinition(t, "error", this.tokens)
             )
         );
     }
 
     private __RIGHTPAD(t: IToken) {
-        const val = this.getParenthesisContent(t.image).match(/0[xX][0-9a-fA-F]+/);
+        const val = getParenthesisContent(t.image).match(/0[xX][0-9a-fA-F]+/);
 
         if(val !== undefined && val !== null && val!.length > 0){
             const hex = val[0].slice(2, val[0].length).padStart(64, "0");
