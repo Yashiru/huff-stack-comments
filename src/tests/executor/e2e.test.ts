@@ -27,4 +27,42 @@ suite('End to end tests', () => {
         assert.equal(comments[7], "[takes[0], takes[1]]");
         assert.equal(comments[8], "[]");
     });
+
+    test('Store words from the stack into memory', () => {
+        let doc = `
+            0x20 0x00 mstore
+            0x01 0x00 sub
+            0x20 mstore
+        `;
+
+        assert.equal(getCommentFor(doc), "[]");
+
+        doc = `
+            0x20 codesize mstore
+        `;
+
+        assert.equal(getCommentFor(doc), "[]");
+    });
+
+    test('Load memory words onto the stack', () => {
+        let doc = `
+            0x20 0x00 mstore
+            0x01 0x00 sub
+            0x20 mstore
+
+            0x00 mload
+            0x20 mload
+            0x00 mload
+            0x02 mload
+        `;
+
+        assert.equal(getCommentFor(doc), "[0x20ffff, 0x20, 0xff...f, 0x20]");
+
+        doc = `
+            0x20 codesize mstore
+            codesize mload
+        `;
+
+        assert.equal(getCommentFor(doc), "[mem[codeSize]]");
+    });
 });

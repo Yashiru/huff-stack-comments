@@ -2,7 +2,6 @@ import { IToken } from "chevrotain";
 import { UInt256, uint256 } from "./uint256/uint256";
 const keccak256 = require('keccak256');
 
-
 export function getMacroDefinitionIndexOf(target: IToken, tokens: IToken[], defaultPtr: number): number {
     const regex = /.*\(/g;
     let i = 0;
@@ -11,7 +10,7 @@ export function getMacroDefinitionIndexOf(target: IToken, tokens: IToken[], defa
             token.image.indexOf(target.image.match(regex)![0]) !== -1 &&
             token.image.indexOf("#define macro") !== -1
         ) {
-            return i - 1;
+            return i === 0 ? 0 : i - 1;
         }
         i++;
     }

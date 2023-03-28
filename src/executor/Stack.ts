@@ -34,7 +34,11 @@ export class Stack{
             }
         }
         else{
+            const tempStack = this.stackValues;
             this.stackValues = [];
+            if(persistentCount !== undefined && persistentCount > 0){
+                this.stackValues = tempStack.slice(0, persistentCount);
+            }
         }
     }
 
