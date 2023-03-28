@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
 			LexicErrorHandler.handleErrors(lexingResult.errors);
 
 			// Generate stack comments
-			const commenter = new Executor(document, lexingResult.tokens);
+			const commenter = new Executor(document, lexingResult.tokens, editor);
 			commenter.generateStackComments();
 
 			vscode.window.showInformationMessage('Huff: Stack comments generated.');

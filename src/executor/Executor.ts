@@ -9,7 +9,6 @@ import { MAX_INT256 } from "../uint256/arithmetic";
 import { Memory } from "../memory/memory";
 
 const keccak256 = require('keccak256');
-const editor = vscode.window.activeTextEditor!;
 
 export class Executor {
     private memory: Memory = new Memory();
@@ -18,6 +17,7 @@ export class Executor {
     private cachedPtr: number[] = [];
     private callDepth: number = 0;
 
+    private editor: vscode.TextEditor | undefined;
     private documentLines: string[];
     private tokens: IToken[];
     private stack: Stack = new Stack();
@@ -29,7 +29,8 @@ export class Executor {
 
     private lastMacro: HuffMacro = null!;
 
-    constructor(document: string, tokens: IToken[]) {
+    constructor(document: string, tokens: IToken[], editor?: vscode.TextEditor) {
+        this.editor = editor;
         this.documentLines = document.split("\n");
         this.tokens = tokens;
 
@@ -63,7 +64,7 @@ export class Executor {
             }
         }
 
-        editor.edit(editBuilder => {
+        this.editor!.edit(editBuilder => {
             const start = new vscode.Position(0, 0);
             const end = new vscode.Position(Infinity, Infinity);
             const range = new vscode.Range(start, end);
