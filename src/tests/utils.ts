@@ -1,4 +1,5 @@
 import { Lexer } from "chevrotain";
+import { Document } from "../Document/Document";
 import { Executor } from "../executor/Executor";
 import { HUFF_MAIN_TOKENS } from "../lexer/HuffTokens";
 import { UInt256 } from "../uint256";
@@ -14,23 +15,13 @@ export const LEXER = new Lexer(HUFF_MAIN_TOKENS, {
 });
 
 export function getCommentFor(doc: string){
-	const lexingResult = LEXER.tokenize(
-		doc
-	);
-
-	const commenter = new Executor(doc, lexingResult.tokens);
-
-	return commenter.getStackComments().slice(-1);
+	const document = new Document(doc);
+	return document.getComments().slice(-1);
 }
 
 export function getAllCommentFor(doc: string){
-	const lexingResult = LEXER.tokenize(
-		doc
-	);
-
-	const commenter = new Executor(doc, lexingResult.tokens);
-
-	return commenter.getStackComments();
+	const document = new Document(doc);
+	return document.getComments();
 }
 
 export function getTokensFor(doc: string){

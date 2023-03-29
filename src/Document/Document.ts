@@ -21,30 +21,17 @@ export class Document{
     constructor(docText?: string){
         this.editor = vscode.window.activeTextEditor;
 
-		if (this.editor && !docText) {
-			let document = this.editor.document.getText();
+        let document = docText ? docText : this.editor ? this.editor.document.getText() : "";
 
-			// Tokenize document
-			const lexer = new Lexer(HUFF_MAIN_TOKENS);
-			this.lexingResult = lexer.tokenize(document);
+        // Tokenize document
+        const lexer = new Lexer(HUFF_MAIN_TOKENS);
+        this.lexingResult = lexer.tokenize(document);
 
-			// Handle lexing errors
-			LexicErrorHandler.handleErrors(this.lexingResult.errors);
-
-			// Generate stack comments
-			this.executor = new Executor(document, this.lexingResult.tokens, this.editor);
-
-		}
-        else if(docText){
-			let document = docText;
-
-			// Tokenize document
-			const lexer = new Lexer(HUFF_MAIN_TOKENS);
-			this.lexingResult = lexer.tokenize(document);
-
-			// Handle lexing errors
-			LexicErrorHandler.handleErrors(this.lexingResult.errors);
-        }
+        // Handle lexing errors
+        LexicErrorHandler.handleErrors(this.lexingResult.errors);
+        
+        // Generate stack comments
+        this.executor = new Executor(document, this.lexingResult.tokens, this.editor);
     }
 
     public async prepare(): Promise<void> {
@@ -68,13 +55,15 @@ export class Document{
                 );
             }
             resolve();
-            console.log(this.includedDocs);
-                  
         });
     }
 
     public generateComments(){
-        this.executor.generateStackComments();
+        return this.executor.generateStackComments();
+    }
+
+    public getComments(){
+        return this.executor.getStackComments();
     }
 
     private getIncludedFilesPath(){
