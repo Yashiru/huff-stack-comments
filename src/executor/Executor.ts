@@ -19,6 +19,7 @@ export class Executor {
 
     private editor: vscode.TextEditor | undefined;
     private documentLines: string[];
+    private linesSet: number[] = [];
     private tokens: IToken[];
     private stack: Stack = new Stack();
     private tokenLexer = new Lexer(HUFF_CHILDREN_TOKENS, {
@@ -53,8 +54,10 @@ export class Executor {
                     this.tokens[this.ptr + 1] === null ||
                     this.tokens[this.ptr + 1].endLine! > this.tokens[this.ptr].endLine!
                 ) &&
+                this.linesSet.indexOf(this.tokens[this.ptr].endLine!) === -1 &&
                 this.tokens[this.ptr].tokenType.name !== "blockEnd"
             ) {
+                this.linesSet.push(this.tokens[this.ptr].endLine!);
                 this.documentLines[this.tokens[this.ptr].endLine! - 1] =
                     this.documentLines[this.tokens[this.ptr].endLine! - 1]
                         .replace(/\/\/.*/, '')
@@ -135,6 +138,7 @@ export class Executor {
             for (let i = 0; i < takes; i++) {
                 initialStack.push(`takes[${i}]`);
             }
+            
             this.stack.reset(initialStack);
         }
         else {
