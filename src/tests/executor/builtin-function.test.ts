@@ -95,4 +95,21 @@ suite('Huff built-in functions', () => {
 
         assert.equal(getCommentFor(doc), "[__tablestart(SWITCH_TABLE)]");
     });
+
+    test('__tablesize', () => {
+        let doc = `
+            __tablesize(10)
+        `;
+
+        assert.equal(getCommentFor(doc), "[__tablesize(10)]");
+
+        doc = `
+            #define jumptable SWITCH_TABLE {
+                jump_one jump_two jump_three jump_four
+            }
+            __tablesize(SWITCH_TABLE)
+        `;
+
+        assert.equal(getCommentFor(doc), "[__tablesize(SWITCH_TABLE)]");
+    });
 });

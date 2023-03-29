@@ -989,7 +989,7 @@ export class Executor {
     /*                           HUFF BUILT IN FUNCTIONS                          */
     /* -------------------------------------------------------------------------- */
 
-    private __FUNC_SIG(t: IToken) {
+    private builtInFuncSig(t: IToken) {
         this.stack.push(
             getSignatureOf(
                 getDefinition(t, "function", this.tokens)
@@ -997,7 +997,7 @@ export class Executor {
         );
     }
 
-    private __EVENT_HASH(t: IToken) {
+    private builtInEventHash(t: IToken) {
         this.stack.push(
             getSignatureOf(
                 getDefinition(t, "event", this.tokens)
@@ -1005,7 +1005,7 @@ export class Executor {
         );
     }
 
-    private __ERROR(t: IToken) {
+    private builtInError(t: IToken) {
         this.stack.push(
             getSignatureOf(
                 getDefinition(t, "error", this.tokens)
@@ -1013,7 +1013,7 @@ export class Executor {
         );
     }
 
-    private __RIGHTPAD(t: IToken) {
+    private builtInRightPad(t: IToken) {
         const val = getParenthesisContent(t.image).match(/0[xX][0-9a-fA-F]+/);
 
         if(val !== undefined && val !== null && val!.length > 0){
@@ -1030,19 +1030,19 @@ export class Executor {
 
     }
 
-    private __codesize(t: IToken) {
+    private builtInCodesize(t: IToken) {
         this.stack.push(
             t.image
         );
     }
 
-    private __tablestart(t: IToken) {
+    private builtInTablestart(t: IToken) {
         this.stack.push(
             t.image
         );
     }
 
-    private __tablesize(t: IToken) {
+    private builtInTablesize(t: IToken) {
         this.stack.push(
             t.image
         );
