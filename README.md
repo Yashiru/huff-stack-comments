@@ -1,6 +1,6 @@
 # Huff stack comments - VsCode extension
 
-This VsCode extension allows to generate automatically comments representing the evolution of the stack during the execution of a code written in [Huff](https://github.com/huff-language/huff-rs).
+This VsCode extension allows to automatically generate comments representing the evolution of the stack during the execution of a code written in [Huff](https://github.com/huff-language/huff-rs).
 
 > **Warning**
 >
