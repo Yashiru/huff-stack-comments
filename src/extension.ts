@@ -1,6 +1,6 @@
 import { Lexer } from 'chevrotain';
 import * as vscode from 'vscode';
-import { Document } from './Document/Document';
+import { Document } from './document/Document';
 import { Executor } from './executor/Executor';
 import { HUFF_MAIN_TOKENS } from './lexer/HuffTokens';
 import { LexicErrorHandler } from './lexer/LexicErrorHandler';

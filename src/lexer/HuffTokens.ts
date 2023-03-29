@@ -21,12 +21,12 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
     createToken({ name: "defineJumptable", pattern: /#define jumptable [0-9a-zA-Z_]*( )?\{(.|\n)*\}/ }),
     createToken({ name: "defineError", pattern: /#define error [0-9a-zA-Z_]*\([0-9a-z, ]*\)/ }),
     createToken({ name: "defineConstant", pattern: /#define constant [0-9a-zA-Z_]*( )?=( )?.*/ }),
-    createToken({ name: "include", pattern: /#include (")?(')?.*(")?(')?/ }),
+    createToken({ name: "include", pattern: /#include( )?["'`].*["'`]/ }),
     /* ------------------------------- Expressions ------------------------------ */
     createToken({ name: "hexadecimal", pattern: /0[xX][0-9a-fA-F]+/ }),
     createToken({ name: "integer", pattern: /0|[1-9]\d*/ }),
     createToken({ name: "variable", pattern: /\[[a-zA-Z_]*]/ }),
-    createToken({ name: "functionCall", pattern: /[<>_a-zA-Z0-9]*\((.*)?\)/ }),
+    createToken({ name: "macroCall", pattern: /[<>_a-zA-Z0-9]*\((.*)?\)/ }),
     createToken({ name: "memoryPointer", pattern: /\<[a-zA-Z0-9_]*\>/ }),
     /* --------------------------------- OpCodes -------------------------------- */
     createToken({ name: "jumpi", pattern: /[a-zA-Z_]* jumpi/ }),
@@ -149,4 +149,8 @@ export const HUFF_CHILDREN_TOKENS: TokenType[] = [
     createToken({ name: "takes", pattern: /takes( )?\([0-9]*\)/ }),
     createToken({ name: "returns", pattern: /returns( )?\([0-9]*\)/ }),
     createToken({ name: "name", pattern: /[a-zA-Z0-9_]+?( )?\(/ })
+];
+
+export const HUFF_FULL_MACRO_TOKENS: TokenType[] = [
+    createToken({ name: "macro", pattern: /#define macro [0-9a-zA-Z_]*\([0-9a-zA-Z_, ]*\)( )?=( )?takes( )?\([0-9]*\) returns( )?\([0-9]*\)( )?{(.|\n)*?}/ }),
 ];

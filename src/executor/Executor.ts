@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { getDefinition, getHuffMacro, getMacroDefinitionIndexOf, getParenthesisContent, getSignatureOf } from "../utils";
 import { MAX_INT256 } from "../uint256/arithmetic";
 import { Memory } from "../memory/memory";
+import { Document } from "../document/Document";
 
 const keccak256 = require('keccak256');
 
@@ -21,26 +22,24 @@ export class Executor {
     private ptr: number = 0;
     private cachedPtr: number[] = [];
 
-    // The current function call depth
+    // The current macro call depth
     private callDepth: number = 0;
 
     // The last called macro
     private lastMacro: HuffMacro = null!;
 
-    private editor: vscode.TextEditor | undefined;
-    private documentLines: string[];
-    private tokens: IToken[];
+    private document: Document;
 
     private maxLineLength: number = 0;
 
 
-    constructor(document: string, tokens: IToken[], editor?: vscode.TextEditor) {
-        this.editor = editor;
-        this.documentLines = document.split("\n");
-        this.tokens = tokens;
+    constructor(document: string, tokens: IToken[], parentDocument: Document) {
+        this.document = parentDocument;
+        this.document.lines = document.split("\n");
+        this.document.lexer.tokens = tokens;
 
-        for (let line of this.documentLines) {
-            let tempLine = line.replace(/\/\/.*/, '');
+        for (let line of this.document.lines) {
+            let tempLine = line.replace(/\/\/.*/g, '').trim();
             this.maxLineLength = tempLine.length > this.maxLineLength ? tempLine.length : this.maxLineLength;
         }
     }
@@ -49,32 +48,25 @@ export class Executor {
      * Replace the document content by the new one with the generated comments
      */
     public generateStackComments() {
-        for (this.ptr = 0; this.ptr < this.tokens.length; this.ptr++) {            
-            this.interpret(this.tokens[this.ptr]);
+        for (this.ptr = 0; this.ptr < this.document.lexer.tokens.length; this.ptr++) {            
+            this.interpret(this.document.lexer.tokens[this.ptr]);
 
             if (
                 (
-                    this.tokens[this.ptr + 1] === undefined ||
-                    this.tokens[this.ptr + 1] === null ||
-                    this.tokens[this.ptr + 1].endLine! > this.tokens[this.ptr].endLine!
+                    this.document.lexer.tokens[this.ptr + 1] === undefined ||
+                    this.document.lexer.tokens[this.ptr + 1] === null ||
+                    this.document.lexer.tokens[this.ptr + 1].endLine! > this.document.lexer.tokens[this.ptr].endLine!
                 ) &&
-                this.tokens[this.ptr].tokenType.name !== "blockEnd"
+                this.document.lexer.tokens[this.ptr].tokenType.name !== "blockEnd"
             ) {
-                this.documentLines[this.tokens[this.ptr].endLine! - 1] =
-                    this.documentLines[this.tokens[this.ptr].endLine! - 1]
+                this.document.lines[this.document.lexer.tokens[this.ptr].endLine! - 1] =
+                    this.document.lines[this.document.lexer.tokens[this.ptr].endLine! - 1]
                         .replace(/\/\/.*/, '')
                         .padEnd(this.maxLineLength + 1, " ")
                     + "// "
                     + this.stack.getStackComment();
             }
         }
-
-        this.editor!.edit(editBuilder => {
-            const start = new vscode.Position(0, 0);
-            const end = new vscode.Position(Infinity, Infinity);
-            const range = new vscode.Range(start, end);
-            editBuilder.replace(range, this.documentLines.join("\n"));
-        });
     }
 
     /**
@@ -83,22 +75,36 @@ export class Executor {
      */
     public getStackComments() {
         let commentLines = [];
-        for (this.ptr = 0; this.ptr < this.tokens.length; this.ptr++) {
-            this.interpret(this.tokens[this.ptr]);
+        for (this.ptr = 0; this.ptr < this.document.lexer.tokens.length; this.ptr++) {
+            this.interpret(this.document.lexer.tokens[this.ptr]);
 
             if (
                 (
-                    this.tokens[this.ptr + 1] === undefined ||
-                    this.tokens[this.ptr + 1] === null ||
-                    this.tokens[this.ptr + 1].endLine! > this.tokens[this.ptr].endLine!
+                    this.document.lexer.tokens[this.ptr + 1] === undefined ||
+                    this.document.lexer.tokens[this.ptr + 1] === null ||
+                    this.document.lexer.tokens[this.ptr + 1].endLine! > this.document.lexer.tokens[this.ptr].endLine!
                 ) &&
-                this.tokens[this.ptr].tokenType.name !== "blockEnd"
+                this.document.lexer.tokens[this.ptr].tokenType.name !== "blockEnd"
             ) {
                 commentLines.push(this.stack.getStackComment());
             }
         }
 
         return commentLines;
+    }
+
+    public getOutputStack(initialStack: Stack, defaultCallDepth?: number): Stack{
+        this.stack.reset(initialStack.stack);
+        this.callDepth = defaultCallDepth || 0;
+
+        for (this.ptr = 0; this.ptr < this.document.lexer.tokens.length; this.ptr++) {
+            this.interpret(this.document.lexer.tokens[this.ptr]);
+            if(this.ptr === 0){
+                this.lastMacro.returns = this.stack.stack.length;
+            }
+        }
+
+        return this.stack;
     }
 
     /* -------------------------------------------------------------------------- */
@@ -129,14 +135,20 @@ export class Executor {
         }
     }
 
-    private functionCall(t: IToken) {
+    private macroCall(t: IToken) {
         this.callDepth++;
         const tempPtr = this.ptr;
-        this.ptr = getMacroDefinitionIndexOf(this.tokens[this.ptr], this.tokens, this.ptr);
+        this.ptr = getMacroDefinitionIndexOf(this.document.lexer.tokens[this.ptr], this.document.lexer.tokens, this.ptr);
         if(tempPtr !== this.ptr){
             this.cachedPtr.push(tempPtr);
-            const macroToCall = getHuffMacro(this.tokens[this.ptr + 1]);
+            const macroToCall = getHuffMacro(this.document.lexer.tokens[this.ptr + 1]);
             this.stack.cache(macroToCall.takes);
+        }
+        else{
+            // Macro not found in this file
+            this.stack.reset(
+                this.document.executeExternalMacro(t, this.stack)
+            );
         }
     }
 
@@ -998,7 +1010,7 @@ export class Executor {
     private builtInFuncSig(t: IToken) {
         this.stack.push(
             getSignatureOf(
-                getDefinition(t, "function", this.tokens)
+                getDefinition(t, "function", this.document.lexer.tokens)
             )
         );
     }
@@ -1006,7 +1018,7 @@ export class Executor {
     private builtInEventHash(t: IToken) {
         this.stack.push(
             getSignatureOf(
-                getDefinition(t, "event", this.tokens)
+                getDefinition(t, "event", this.document.lexer.tokens)
             )
         );
     }
@@ -1014,7 +1026,7 @@ export class Executor {
     private builtInError(t: IToken) {
         this.stack.push(
             getSignatureOf(
-                getDefinition(t, "error", this.tokens)
+                getDefinition(t, "error", this.document.lexer.tokens)
             )
         );
     }

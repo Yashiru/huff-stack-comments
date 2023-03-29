@@ -1,5 +1,5 @@
 import { Lexer } from "chevrotain";
-import { Document } from "../Document/Document";
+import { Document } from "../document/Document";
 import { Executor } from "../executor/Executor";
 import { HUFF_MAIN_TOKENS } from "../lexer/HuffTokens";
 import { UInt256 } from "../uint256";
