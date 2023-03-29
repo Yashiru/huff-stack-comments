@@ -11,21 +11,28 @@ import { Memory } from "../memory/memory";
 const keccak256 = require('keccak256');
 
 export class Executor {
+    // Virtual memory
     private memory: Memory = new Memory();
 
+    // Virtual stack
+    private stack: Stack = new Stack();
+
+    // Execution pointer
     private ptr: number = 0;
     private cachedPtr: number[] = [];
+
+    // The current function call depth
     private callDepth: number = 0;
+
+    // The last called macro
+    private lastMacro: HuffMacro = null!;
 
     private editor: vscode.TextEditor | undefined;
     private documentLines: string[];
-    private linesSet: number[] = [];
     private tokens: IToken[];
-    private stack: Stack = new Stack();
 
     private maxLineLength: number = 0;
 
-    private lastMacro: HuffMacro = null!;
 
     constructor(document: string, tokens: IToken[], editor?: vscode.TextEditor) {
         this.editor = editor;
@@ -53,7 +60,6 @@ export class Executor {
                 ) &&
                 this.tokens[this.ptr].tokenType.name !== "blockEnd"
             ) {
-                this.linesSet.push(this.tokens[this.ptr].endLine!);
                 this.documentLines[this.tokens[this.ptr].endLine! - 1] =
                     this.documentLines[this.tokens[this.ptr].endLine! - 1]
                         .replace(/\/\/.*/, '')

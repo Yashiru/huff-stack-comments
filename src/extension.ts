@@ -1,28 +1,21 @@
 import { Lexer } from 'chevrotain';
 import * as vscode from 'vscode';
+import { Document } from './Document/Document';
 import { Executor } from './executor/Executor';
 import { HUFF_MAIN_TOKENS } from './lexer/HuffTokens';
 import { LexicErrorHandler } from './lexer/LexicErrorHandler';
 
 export function activate(context: vscode.ExtensionContext) {
-	let disposable = vscode.commands.registerCommand('huff-stack-comments.generate', () => {
-		const editor = vscode.window.activeTextEditor;
-
-		if (editor) {
-			let document = editor.document.getText();
-
-			// Tokenize document
-			const lexer = new Lexer(HUFF_MAIN_TOKENS);
-			const lexingResult = lexer.tokenize(document);
-			// Handle lexing errors
-			LexicErrorHandler.handleErrors(lexingResult.errors);
-
-			// Generate stack comments
-			const commenter = new Executor(document, lexingResult.tokens, editor);
-			commenter.generateStackComments();
-
-			vscode.window.showInformationMessage('Huff: Stack comments generated.');
-		}
+	let disposable = vscode.commands.registerCommand('huff-stack-comments.generate', async () => {
+        vscode.window.withProgress({location: 15, title: "Generating stack comments...", cancellable: true}, (progress, token) => {
+            return new Promise(async (resolve) => {
+				const doc = new Document();
+				await doc.prepare();
+				doc.generateComments();
+				vscode.window.showInformationMessage("Huff: stack comments generated");
+				resolve("");
+            });
+        });
 	});
 
 	context.subscriptions.push(disposable);
