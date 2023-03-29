@@ -129,7 +129,7 @@ export class Executor {
         this.ptr = getMacroDefinitionIndexOf(this.tokens[this.ptr], this.tokens, this.ptr);
         if(tempPtr !== this.ptr){
             this.cachedPtr.push(tempPtr);
-            const macroToCall = getHuffMacro(this.tokens[this.ptr]);
+            const macroToCall = getHuffMacro(this.tokens[this.ptr + 1]);
             this.stack.cache(macroToCall.takes);
         }
     }
@@ -469,7 +469,15 @@ export class Executor {
 
     private jumpi(t: IToken) {
         this.stack.pop();
-        this.stack.pop();
+        this.stack.cacheForJump(t);
+    }
+
+    private jump(t: IToken) { 
+        this.stack.cacheForJump(t);
+    }
+
+    private jumpdest(t: IToken) {
+        this.stack.loadForJump(t);
     }
 
     private msize(t: IToken) {
@@ -595,8 +603,6 @@ export class Executor {
     }
 
     private byte(t: IToken) { }
-
-    private jump(t: IToken) { }
 
     private dup1(t: IToken) {
         this.stack.dup(1);

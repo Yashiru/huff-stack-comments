@@ -403,8 +403,11 @@ suite('OpCode tests', () => {
 		const doc = `
 				0xaa 0x01
 				dest jumpi
+				0x00 0x00 0x00 0x00
+				dest:
+					0xaa
 			`;
-		assert.equal(getCommentFor(doc), "[]");
+		assert.equal(getCommentFor(doc), "[0xaa, 0xaa]");
 	});
 
 	test('msize', () => {
