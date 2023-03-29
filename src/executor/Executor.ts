@@ -4,7 +4,7 @@ import { Stack } from "./Stack";
 import { UInt256, uint256 } from "../uint256/uint256";
 import { HuffMacro } from "../interfaces/HuffMacro";
 import * as vscode from 'vscode';
-import { getDefinition, getMacroDefinitionIndexOf, getParenthesisContent, getSignatureOf } from "../utils";
+import { getDefinition, getHuffMacro, getMacroDefinitionIndexOf, getParenthesisContent, getSignatureOf } from "../utils";
 import { MAX_INT256 } from "../uint256/arithmetic";
 import { Memory } from "../memory/memory";
 
@@ -22,9 +22,6 @@ export class Executor {
     private linesSet: number[] = [];
     private tokens: IToken[];
     private stack: Stack = new Stack();
-    private tokenLexer = new Lexer(HUFF_CHILDREN_TOKENS, {
-        positionTracking: "onlyOffset"
-    });
 
     private maxLineLength: number = 0;
 
@@ -54,7 +51,6 @@ export class Executor {
                     this.tokens[this.ptr + 1] === null ||
                     this.tokens[this.ptr + 1].endLine! > this.tokens[this.ptr].endLine!
                 ) &&
-                this.linesSet.indexOf(this.tokens[this.ptr].endLine!) === -1 &&
                 this.tokens[this.ptr].tokenType.name !== "blockEnd"
             ) {
                 this.linesSet.push(this.tokens[this.ptr].endLine!);
@@ -114,41 +110,17 @@ export class Executor {
     /* -------------------------------------------------------------------------- */
 
     private defineMacro(t: IToken) {
-        // TODO: remain old stack for "takes"
-        const lexedToken = this.tokenLexer.tokenize(
-            t.image
-        );
-
-        const takes: number = parseInt(
-            lexedToken.tokens[0].image.replace(" ", "").slice(
-                6,
-                lexedToken.tokens[0].image.length - 1
-            )
-        );
-        const returns: number = parseInt(
-            lexedToken.tokens[1].image.replace(" ", "").slice(
-                8,
-                lexedToken.tokens[1].image.length - 1
-            )
-        );
+        this.lastMacro = getHuffMacro(t);
 
         if (this.callDepth === 0) {
             const initialStack: string[] = [];
 
-            for (let i = 0; i < takes; i++) {
+            for (let i = 0; i < this.lastMacro.takes; i++) {
                 initialStack.push(`takes[${i}]`);
             }
             
             this.stack.reset(initialStack);
         }
-        else {
-            this.stack.cache(takes);
-        }
-
-        this.lastMacro = {
-            takes,
-            returns
-        };
     }
 
     private functionCall(t: IToken) {
@@ -157,6 +129,8 @@ export class Executor {
         this.ptr = getMacroDefinitionIndexOf(this.tokens[this.ptr], this.tokens, this.ptr);
         if(tempPtr !== this.ptr){
             this.cachedPtr.push(tempPtr);
+            const macroToCall = getHuffMacro(this.tokens[this.ptr + 1]);
+            this.stack.cache(macroToCall.takes);
         }
     }
 
@@ -495,7 +469,15 @@ export class Executor {
 
     private jumpi(t: IToken) {
         this.stack.pop();
-        this.stack.pop();
+        this.stack.cacheForJump(t);
+    }
+
+    private jump(t: IToken) { 
+        this.stack.cacheForJump(t);
+    }
+
+    private jumpdest(t: IToken) {
+        this.stack.loadForJump(t);
     }
 
     private msize(t: IToken) {
@@ -621,8 +603,6 @@ export class Executor {
     }
 
     private byte(t: IToken) { }
-
-    private jump(t: IToken) { }
 
     private dup1(t: IToken) {
         this.stack.dup(1);

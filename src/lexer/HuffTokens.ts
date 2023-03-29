@@ -28,6 +28,7 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
     createToken({ name: "functionCall", pattern: /[<>_a-zA-Z0-9]*\((.*)?\)/ }),
     createToken({ name: "memoryPointer", pattern: /\<[a-zA-Z0-9_]*\>/ }),
     /* --------------------------------- OpCodes -------------------------------- */
+    createToken({ name: "jumpi", pattern: /[a-zA-Z_]* jumpi/ }),
     createToken({ name: "returndatasize", pattern: /returndatasize/ }),
     createToken({ name: "returndatacopy", pattern: /returndatacopy/ }),
     createToken({ name: "calldataload", pattern: /calldataload/ }),
@@ -51,7 +52,7 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
     createToken({ name: "gasprice", pattern: /gasprice/ }),
     createToken({ name: "coinbase", pattern: /coinbase/ }),
     createToken({ name: "gaslimit", pattern: /gaslimit/ }),
-    createToken({ name: "jumpdest", pattern: /.*:/ }),
+    createToken({ name: "jumpdest", pattern: /[a-zA-Z_]*:/ }),
     createToken({ name: "callcode", pattern: /callcode/ }),
     createToken({ name: "address", pattern: /address/ }),
     createToken({ name: "balance", pattern: /balance/ }),
@@ -80,7 +81,6 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
     createToken({ name: "revert", pattern: /revert/ }),
     createToken({ name: "mload", pattern: /mload/ }),
     createToken({ name: "sload", pattern: /sload/ }),
-    createToken({ name: "jumpi", pattern: /.* jumpi/ }),
     createToken({ name: "msize", pattern: /msize/ }),
     createToken({ name: "dup10", pattern: /dup10/ }),
     createToken({ name: "dup11", pattern: /dup11/ }),
@@ -102,7 +102,7 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
     createToken({ name: "sdiv", pattern: /sdiv/ }),
     createToken({ name: "smod", pattern: /smod/ }),
     createToken({ name: "byte", pattern: /byte/ }),
-    createToken({ name: "jump", pattern: /.* jump/ }),
+    createToken({ name: "jump", pattern: /[a-zA-Z_]* jump/ }),
     createToken({ name: "dup1", pattern: /dup1/ }),
     createToken({ name: "dup2", pattern: /dup2/ }),
     createToken({ name: "dup3", pattern: /dup3/ }),
@@ -146,5 +146,6 @@ export const HUFF_MAIN_TOKENS: TokenType[] = [
 
 export const HUFF_CHILDREN_TOKENS: TokenType[] = [
     createToken({ name: "takes", pattern: /takes( )?\([0-9]*\)/ }),
-    createToken({ name: "returns", pattern: /returns( )?\([0-9]*\)/ })
+    createToken({ name: "returns", pattern: /returns( )?\([0-9]*\)/ }),
+    createToken({ name: "name", pattern: /[a-zA-Z0-9_]+?( )?\(/ })
 ];

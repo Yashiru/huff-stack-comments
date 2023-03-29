@@ -1,9 +1,16 @@
+import { IToken } from "chevrotain";
+
 export class Stack{
+    private cachedForJump: StackCachedForJump[] = [];
     private cachedStacks: string[][] = [[]];
     private stackValues: string[] = [];
 
     constructor(initialStack?: string[]){
         this.reset(initialStack);
+    }
+
+    public get stack(): string[]{
+        return this.stackValues;
     }
 
     public reset(initialStack?: string[]){
@@ -39,6 +46,28 @@ export class Stack{
             if(persistentCount !== undefined && persistentCount > 0){
                 this.stackValues = tempStack.slice(0, persistentCount);
             }
+        }
+    }
+
+    public cacheForJump(t: IToken){
+        this.cachedForJump.push({
+            jumpDestName: t.image.slice(0, t.image.toLowerCase().indexOf("jump")-1),
+            cachedStack: [...this.stackValues]
+        });        
+    }
+
+    public loadForJump(t: IToken){
+        const name = t.image.replace(":", "");
+
+        let i = 0;
+        for(let cached of this.cachedForJump){
+            if(cached.jumpDestName === name)
+            {
+                this.stackValues = [...cached.cachedStack];
+                this.cachedForJump.splice(i, 1);
+                return;
+            }
+            i++;
         }
     }
 
@@ -90,4 +119,9 @@ export class Stack{
         
         return "[" + tempStack.join(", ") + "]";
     }
+}
+
+interface StackCachedForJump{
+    jumpDestName: string
+    cachedStack: string[]
 }
