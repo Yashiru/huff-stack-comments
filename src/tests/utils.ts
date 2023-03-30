@@ -3,6 +3,7 @@ import { Document } from "../document/Document";
 import { Executor } from "../executor/Executor";
 import { HUFF_MAIN_TOKENS } from "../lexer/HuffTokens";
 import { UInt256 } from "../uint256";
+import { LOGGER } from "../utils";
 
 export const LEXER = new Lexer(HUFF_MAIN_TOKENS, {
 	lineTerminatorsPattern: /\n|\r|\u2028|\u2029/g,
@@ -15,12 +16,16 @@ export const LEXER = new Lexer(HUFF_MAIN_TOKENS, {
 });
 
 export function getCommentFor(doc: string){
-	const document = new Document(doc);
+	LOGGER.setLevel(0);
+	const document = new Document("", doc);
+	document.name = "Test document";
 	return document.getComments().slice(-1);
 }
 
 export function getAllCommentFor(doc: string){
-	const document = new Document(doc);
+	LOGGER.setLevel(0);
+	const document = new Document("", doc);
+	document.name = "Test document";
 	return document.getComments();
 }
 

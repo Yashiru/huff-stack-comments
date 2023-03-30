@@ -1,8 +1,12 @@
 import { IToken, Lexer } from "chevrotain";
 import { HuffMacro } from "./interfaces/HuffMacro";
 import { HUFF_CHILDREN_TOKENS } from "./lexer/HuffTokens";
-import { UInt256, uint256 } from "./uint256/uint256";
+import { Logger } from "./Logger/Logger";
+import { uint256 } from "./uint256/uint256";
+
 const keccak256 = require('keccak256');
+
+export const LOGGER = new Logger();
 
 export const tokenLexer = new Lexer(HUFF_CHILDREN_TOKENS, {
     positionTracking: "onlyOffset"
@@ -14,9 +18,31 @@ export function getMacroDefinitionIndexOf(target: IToken, tokens: IToken[], defa
     for (let token of tokens) {
         if (
             token.image.indexOf(target.image.match(regex)![0]) !== -1 &&
-            token.image.indexOf("#define macro") !== -1
+            token.tokenType.name === "defineMacro"
         ) {
             return i === 0 ? 0 : i - 1;
+        }
+        i++;
+    }
+    return defaultPtr;
+}
+
+export function getMacroEndIndexOf(target: IToken, tokens: IToken[], defaultPtr: number): number {
+    const regex = /.*\(/g;
+    let macroDefIndex: number = undefined!;
+    let i = 0;
+    for (let token of tokens) {
+        if (
+            token.image.indexOf(target.image.match(regex)![0]) !== -1 &&
+            token.tokenType.name === "defineMacro"
+        ) {
+            macroDefIndex = i;
+        }
+        if(
+            macroDefIndex !== undefined &&
+            token.tokenType.name === "blockEnd"
+        ){
+            return i;
         }
         i++;
     }
@@ -65,6 +91,11 @@ export function getJumptableName(def: string): string {
     else {
         return def;
     }
+}
+
+export function extractMacroName(t: IToken){
+    let name = t.image.replace("#define macro ", "");
+    return name.slice(0, name.indexOf("("));
 }
 
 export function getHuffMacro(t: IToken): HuffMacro {

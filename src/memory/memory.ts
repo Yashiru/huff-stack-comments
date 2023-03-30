@@ -7,6 +7,10 @@ export class Memory{
         this._heap = defaultMem || new Uint8Array();
     }
 
+    public toString(){
+        return "[" + [...this._heap].join(", ") + "]";
+    }
+
     public mload(offset: number): UInt256{
         return uint256(
             this._heap.slice(

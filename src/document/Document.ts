@@ -1,10 +1,12 @@
 import { ILexingResult, IToken, Lexer } from 'chevrotain';
 import { Executor } from '../executor/Executor';
 import { HUFF_FULL_MACRO_TOKENS, HUFF_MAIN_TOKENS } from '../lexer/HuffTokens';
-import { LexicErrorHandler } from '../lexer/LexicErrorHandler';
+import { ErrorHandler } from '../lexer/LexicErrorHandler';
 import { Stack } from '../executor/Stack';
 import * as vscode from 'vscode';
 import * as path from "path";
+import { VirtualExecutor } from '../executor/VirtualExecutor';
+import { extractMacroName, getHuffMacro, LOGGER } from '../utils';
 
 export class Document{
     // Vs code current editor (Only for the main parent Document)
@@ -23,9 +25,27 @@ export class Document{
     public lines: string[] = [];
 
     public rawContent: string;
+    public name: string = "";
+    public path: string;
 
-    constructor(docText?: string){
+    constructor(path?: string, docText?: string){
         this.editor = vscode.window.activeTextEditor;
+        
+        if(!path){
+            this.path = 
+                this.editor?.document.uri.path.slice(
+                    0,
+                    this.editor?.document.uri.path.lastIndexOf("/")
+                )!;
+            this.name = 
+                this.editor?.document.uri.path.slice(
+                    this.editor?.document.uri.path.lastIndexOf("/")+1,
+                    this.editor?.document.uri.path.length
+                )!;
+        }
+        else{
+            this.path = path;
+        }
 
         this.rawContent = docText ? docText : this.editor ? this.editor.document.getText() : "";
 
@@ -34,29 +54,44 @@ export class Document{
         this.lexer = lexer.tokenize(this.rawContent);
 
         // Handle lexing errors
-        LexicErrorHandler.handleErrors(this.lexer.errors);
+        ErrorHandler.handleLexerErrors(this.lexer.errors);
         
         // Generate stack comments
         this.executor = new Executor(this.rawContent, this.lexer.tokens, this);
     }
 
+    public getCleanName(){
+        return this.name
+            .replace("..", "")
+            .replace("./", "")
+            .replace("/", "");
+    }
+
     public async prepare(): Promise<void> {
         return new Promise(async (resolve, reject) => {
-            for(let include of this.getIncludedFilesPath()){
-                const currentPath = 
-                    this.editor?.document.uri.path.slice(
-                        0,
-                        this.editor?.document.uri.path.lastIndexOf("/")
-                    );
+            let includes = this.getIncludedFilesPath();
+            for(let include of includes){
 
                 const includeFullPath = path.join(
-                    currentPath!,
+                    this.path,
                     include
                 );
                 
-                const doc = await vscode.workspace.openTextDocument(includeFullPath);
-                const includedDoc = new Document(doc.getText());
+                let doc;
+
+                try{
+                    doc = await vscode.workspace.openTextDocument(includeFullPath);
+                }
+                catch(err){
+                    reject(err);
+                    return;
+                }
+                const includedDoc = new Document(includeFullPath.slice(0, includeFullPath.lastIndexOf("/")), doc.getText());
+                includedDoc.name = include;
+
+                // Prepare child document
                 await includedDoc.prepare();
+
                 this.includedDocs.push(
                     includedDoc
                 );
@@ -86,7 +121,8 @@ export class Document{
         const macroLexer = new Lexer(HUFF_FULL_MACRO_TOKENS);
         const lexer = new Lexer(HUFF_MAIN_TOKENS);
 
-        let fullMacro = "";
+        let docToRun: Document = undefined!;
+        let macroDef: string = undefined!;
 
         for(let doc of this.includedDocs){
             const lexingRes = macroLexer.tokenize(doc.rawContent);
@@ -97,19 +133,26 @@ export class Document{
                     t.image.indexOf("(")
                 );
                 if(_t.image.indexOf(macroName) !== -1){
-                    fullMacro = _t.image;
+                    LOGGER.log(
+                        `\n===> 📤 External macro call 🟣 ${doc.getCleanName()}::${extractMacroName(t)}`,
+                        this.executor.callDepth + 1
+                    );
+                    this.executor.lastMacros.push(getHuffMacro(_t));
+                    docToRun = doc;
+                    macroDef = macroName;
                     break;
                 }
             }
         }
 
-        if(fullMacro.length === 0){
+        if(docToRun === undefined){
             return initialStack.stack;
         }
 
-        const tempDoc = new Document(fullMacro);
-        const tempExecutor = new Executor(fullMacro, lexer.tokenize(fullMacro).tokens, tempDoc);
-        return tempExecutor.getOutputStack(initialStack, 1).stack;
+        const tempDoc = new Document(docToRun.rawContent);
+        tempDoc.name = "VirtualExecutor - "+docToRun.name;
+        const tempExecutor = new VirtualExecutor(docToRun.rawContent, lexer.tokenize(docToRun.rawContent).tokens, tempDoc);
+        return tempExecutor.runMacro(macroDef, initialStack, 1).stack;
     }
 
     private getIncludedFilesPath(){

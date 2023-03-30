@@ -4,7 +4,7 @@ import { Stack } from "./Stack";
 import { UInt256, uint256 } from "../uint256/uint256";
 import { HuffMacro } from "../interfaces/HuffMacro";
 import * as vscode from 'vscode';
-import { getDefinition, getHuffMacro, getMacroDefinitionIndexOf, getParenthesisContent, getSignatureOf } from "../utils";
+import { extractMacroName, getDefinition, getHuffMacro, getMacroDefinitionIndexOf, getParenthesisContent, getSignatureOf, LOGGER } from "../utils";
 import { MAX_INT256 } from "../uint256/arithmetic";
 import { Memory } from "../memory/memory";
 import { Document } from "../document/Document";
@@ -15,23 +15,28 @@ export class Executor {
     // Virtual memory
     private memory: Memory = new Memory();
 
-    // Virtual stack
-    private stack: Stack = new Stack();
-
-    // Execution pointer
-    private ptr: number = 0;
-    private cachedPtr: number[] = [];
-
-    // The current macro call depth
-    private callDepth: number = 0;
-
-    // The last called macro
-    private lastMacro: HuffMacro = null!;
-
-    private document: Document;
-
+    // Maximum document line length
     private maxLineLength: number = 0;
 
+    // Execution pointer
+    private cachedPtr: number[] = [];
+    public ptr: number = 0;
+
+    // The current macro call depth
+    public callDepth: number = 0;
+
+    // The last called macro
+    public lastMacros: HuffMacro[] = [{
+        name: "defaultMacro",
+        takes: 0,
+        returns: 0
+    }];
+
+    // The document in which this executor is running
+    public document: Document;
+
+    // Virtual stack
+    public stack: Stack = new Stack();
 
     constructor(document: string, tokens: IToken[], parentDocument: Document) {
         this.document = parentDocument;
@@ -57,7 +62,8 @@ export class Executor {
                     this.document.lexer.tokens[this.ptr + 1] === null ||
                     this.document.lexer.tokens[this.ptr + 1].endLine! > this.document.lexer.tokens[this.ptr].endLine!
                 ) &&
-                this.document.lexer.tokens[this.ptr].tokenType.name !== "blockEnd"
+                this.document.lexer.tokens[this.ptr].tokenType.name !== "blockEnd" &&
+                this.document.lexer.tokens[this.ptr].tokenType.name !== "include"
             ) {
                 this.document.lines[this.document.lexer.tokens[this.ptr].endLine! - 1] =
                     this.document.lines[this.document.lexer.tokens[this.ptr].endLine! - 1]
@@ -84,7 +90,8 @@ export class Executor {
                     this.document.lexer.tokens[this.ptr + 1] === null ||
                     this.document.lexer.tokens[this.ptr + 1].endLine! > this.document.lexer.tokens[this.ptr].endLine!
                 ) &&
-                this.document.lexer.tokens[this.ptr].tokenType.name !== "blockEnd"
+                this.document.lexer.tokens[this.ptr].tokenType.name !== "blockEnd" &&
+                this.document.lexer.tokens[this.ptr].tokenType.name !== "include"
             ) {
                 commentLines.push(this.stack.getStackComment());
             }
@@ -93,27 +100,39 @@ export class Executor {
         return commentLines;
     }
 
-    public getOutputStack(initialStack: Stack, defaultCallDepth?: number): Stack{
-        this.stack.reset(initialStack.stack);
-        this.callDepth = defaultCallDepth || 0;
-
-        for (this.ptr = 0; this.ptr < this.document.lexer.tokens.length; this.ptr++) {
-            this.interpret(this.document.lexer.tokens[this.ptr]);
-            if(this.ptr === 0){
-                this.lastMacro.returns = this.stack.stack.length;
-            }
-        }
-
-        return this.stack;
-    }
-
-    /* -------------------------------------------------------------------------- */
-    /*                              PRIVATE FUNCTIONS                             */
-    /* -------------------------------------------------------------------------- */
-
-    private interpret(token: IToken) {
+    public interpret(token: IToken) {
         if ((this as any)[token.tokenType.name] !== undefined) {
+            if(token.tokenType.name === "defineMacro"){
+                this.lastMacros.push(getHuffMacro(token));
+
+                if(this.callDepth === 0){
+                    LOGGER.log(
+                        `🆕 ============ Enter macro 🔜 ${this.document.getCleanName()}::${extractMacroName(token)} ============ 🆕`,
+                        1
+                    );
+                }
+            }
+            if(token.tokenType.name === "macroCall"){
+                LOGGER.log(
+                    `[${(this.document.name + "::" + this.lastMacros.slice(-1)[0].name).padEnd(70, " ")}] `+token.tokenType.name.padEnd(18, " ") + " 👉 " + this.stack.getStackComment(),
+                    this.callDepth + 1
+                );
+            }
             (this as any)[token.tokenType.name](token);
+            if(token.tokenType.name !== "macroCall"){
+                LOGGER.log(
+                    `[${(this.document.name + "::" + this.lastMacros.slice(-1)[0].name).padEnd(70, " ")}] `+token.tokenType.name.padEnd(18, " ") + " 👉 " + this.stack.getStackComment(),
+                    this.callDepth + 1
+                );
+            }
+
+            if(token.tokenType.name === "blockEnd"){
+                LOGGER.log(
+                    `===> 📥 End of 🟢 ${this.document.getCleanName()}::${this.lastMacros.slice(-1)[0].name}\n`,
+                    1
+                );
+                this.lastMacros.pop();
+            }
         }
     }
 
@@ -122,12 +141,10 @@ export class Executor {
     /* -------------------------------------------------------------------------- */
 
     private defineMacro(t: IToken) {
-        this.lastMacro = getHuffMacro(t);
-
         if (this.callDepth === 0) {
             const initialStack: string[] = [];
 
-            for (let i = 0; i < this.lastMacro.takes; i++) {
+            for (let i = 0; i < this.lastMacros.slice(-1)[0].takes; i++) {
                 initialStack.push(`takes[${i}]`);
             }
             
@@ -140,8 +157,13 @@ export class Executor {
         const tempPtr = this.ptr;
         this.ptr = getMacroDefinitionIndexOf(this.document.lexer.tokens[this.ptr], this.document.lexer.tokens, this.ptr);
         if(tempPtr !== this.ptr){
+            LOGGER.log(
+                `\n===> 📤 Internal macro call 🔵 ${this.document.getCleanName()}::${extractMacroName(t)}`,
+                1
+            );
             this.cachedPtr.push(tempPtr);
-            const macroToCall = getHuffMacro(this.document.lexer.tokens[this.ptr + 1]);
+            const macroToCall = getHuffMacro(this.document.lexer.tokens[this.ptr === 0 ? 0 : this.ptr + 1]);
+            this.lastMacros.push(macroToCall);
             this.stack.cache(macroToCall.takes);
         }
         else{
@@ -158,7 +180,8 @@ export class Executor {
             this.ptr = this.cachedPtr.slice(-1)[0];
             this.cachedPtr.pop();
         }
-        this.stack.uncache(this.lastMacro.returns);
+
+        this.stack.uncache(this.lastMacros.slice(-1)[0].returns);
     }
 
     private hexadecimal(t: IToken) {
