@@ -13,13 +13,13 @@ const keccak256 = require('keccak256');
 
 export class Executor {
     // Virtual memory
-    private memory: Memory = new Memory();
+    public memory: Memory = new Memory();
 
     // Maximum document line length
-    private maxLineLength: number = 0;
+    public maxLineLength: number = 0;
 
     // Execution pointer
-    private cachedPtr: number[] = [];
+    public cachedPtr: number[] = [];
     public ptr: number = 0;
 
     // The current macro call depth
@@ -114,14 +114,14 @@ export class Executor {
             }
             if(token.tokenType.name === "macroCall"){
                 LOGGER.log(
-                    `[${(this.document.name + "::" + this.lastMacros.slice(-1)[0].name).padEnd(70, " ")}] `+token.tokenType.name.padEnd(18, " ") + " 👉 " + this.stack.getStackComment(),
+                    `[${(this.document.name + " - L" + token.endLine).padEnd(70, " ")}] `+token.tokenType.name.padEnd(18, " ") + " 👉 " + this.stack.getStackComment(),
                     this.callDepth + 1
                 );
             }
             (this as any)[token.tokenType.name](token);
             if(token.tokenType.name !== "macroCall"){
                 LOGGER.log(
-                    `[${(this.document.name + "::" + this.lastMacros.slice(-1)[0].name).padEnd(70, " ")}] `+token.tokenType.name.padEnd(18, " ") + " 👉 " + this.stack.getStackComment(),
+                    `[${(this.document.name + " - L" + token.endLine).padEnd(70, " ")}] `+token.tokenType.name.padEnd(18, " ") + " 👉 " + this.stack.getStackComment(),
                     this.callDepth + 1
                 );
             }
@@ -163,13 +163,12 @@ export class Executor {
             );
             this.cachedPtr.push(tempPtr);
             const macroToCall = getHuffMacro(this.document.lexer.tokens[this.ptr === 0 ? 0 : this.ptr + 1]);
-            this.lastMacros.push(macroToCall);
             this.stack.cache(macroToCall.takes);
         }
         else{
             // Macro not found in this file
             this.stack.reset(
-                this.document.executeExternalMacro(t, this.stack)
+                this.document.executeExternalMacro(t)
             );
         }
     }

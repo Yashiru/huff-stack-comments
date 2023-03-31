@@ -1,9 +1,12 @@
 import { IToken } from "chevrotain";
+import { LOGGER } from "../utils";
 
 export class Stack{
     private cachedForJump: StackCachedForJump[] = [];
     private cachedStacks: string[][] = [[]];
     private stackValues: string[] = [];
+
+    private _fullStack: string[] = [];
 
     constructor(initialStack?: string[]){
         this.reset(initialStack);
@@ -13,8 +16,13 @@ export class Stack{
         return this.stackValues;
     }
 
+    public get fullStack(): string[]{
+        return this._fullStack;
+    }
+
     public reset(initialStack?: string[]){
         this.stackValues = initialStack || [];
+        this._fullStack = initialStack || [];
     }
 
     public cache(persistentCount?: number){
@@ -29,6 +37,7 @@ export class Stack{
         else{
             this.cachedStacks.push(stackToCache);
         }
+        LOGGER.log("🔷 CACHE STACK FOR MACRO CALL ("+this.cachedStacks.length+") ===> ["+stackToCache.join(", ")+"]", 1);
     }
 
     public uncache(persistentCount?: number){
@@ -47,6 +56,7 @@ export class Stack{
                 this.stackValues = tempStack.slice(0, persistentCount);
             }
         }
+        LOGGER.log("🔶 UNCACHE STACK FOR MACRO CALL ("+this.cachedStacks.length+") END ===> "+this.getStackComment(), 1);
     }
 
     public cacheForJump(t: IToken){
@@ -73,11 +83,13 @@ export class Stack{
 
     public push(value: string){
         this.stackValues.unshift(value);
+        this._fullStack.unshift(value);
     }
 
     public pop(){
         const popedVal = this.stackValues[0];
         this.stackValues.shift();
+        this._fullStack.shift();
         return popedVal;
     }
 
@@ -85,13 +97,21 @@ export class Stack{
         this.stackValues.unshift(
             this.stackValues[index - 1]
         );
+        this._fullStack.unshift(
+            this._fullStack[index - 1]
+        );
     }
 
     public swap(index: number){
-        const temp = this.stackValues[0];
+        let temp = this.stackValues[0];
 
         this.stackValues[0] = this.stackValues[index];
         this.stackValues[index] = temp;
+
+        temp = this._fullStack[0];
+
+        this._fullStack[0] = this._fullStack[index];
+        this._fullStack[index] = temp;
     }
 
     public getStackComment(){        

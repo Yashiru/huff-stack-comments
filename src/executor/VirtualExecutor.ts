@@ -1,32 +1,40 @@
 import { IToken } from "chevrotain";
 import { Stack } from "./Stack";
-import { getMacroDefinitionIndexOf, getMacroEndIndexOf, LOGGER } from "../utils";
+import { getHuffMacro, getMacroDefinitionIndexOf, getMacroEndIndexOf, LOGGER } from "../utils";
 import { Document } from "../document/Document";
 import { Executor } from "./Executor";
 
-const keccak256 = require('keccak256');
 
 export class VirtualExecutor extends Executor {
+    private owner: Document;
 
-    constructor(document: string, tokens: IToken[], parentDocument: Document) {
-        super(document, tokens, parentDocument);
+    constructor(text: string, tokens: IToken[], document: Document, owner: Document, defaultStack: Stack) {
+        super(text, tokens, document);
+        this.stack = defaultStack;
+        this.owner = owner;
     }
 
-    public runMacro(macroDef: string, initialStack: Stack, defaultCallDepth?: number): Stack{
-        this.stack.reset(initialStack.stack);
+    public runMacro(macroDef: string, defaultCallDepth?: number): Stack{
         this.callDepth = defaultCallDepth || 0;
 
-        const defaultPtr = getMacroDefinitionIndexOf(
+        let defaultPtr = getMacroDefinitionIndexOf(
             this.getMacroTokenFromDef(macroDef),
             this.document.lexer.tokens,
             0
-        ) + 1;
+        );
+
+        defaultPtr = defaultPtr === 0 ? 0 : defaultPtr + 1;
 
         const endPtr = getMacroEndIndexOf(
             this.getMacroTokenFromDef(macroDef),
             this.document.lexer.tokens,
             0
+        ) + 1;
+
+        const initialMacro = getHuffMacro(
+            this.getMacroTokenFromDef(macroDef)
         );
+        this.stack.cache(initialMacro.takes);
 
         for (this.ptr = defaultPtr; this.ptr < endPtr; this.ptr++) {
             
@@ -40,6 +48,9 @@ export class VirtualExecutor extends Executor {
                 break;
             }
         }
+        
+        // Need to pop the owner document's executor lastMacro
+        this.owner.executor.lastMacros.pop();
 
         return this.stack;
     }
