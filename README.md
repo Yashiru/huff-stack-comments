@@ -1,5 +1,5 @@
 > **Note**
-> Check out [huffr](https://github.com/Yashiru/huffr),a new way to generate huff stack comments.
+> Check out [huffr](https://github.com/Yashiru/huffr), a new way to generate huff stack comments.
 
 # Huff stack comments - VsCode extension
 This VsCode extension allows to generate automatically comments representing the evolution of the stack during the execution of a code written in [Huff](https://github.com/huff-language/huff-rs).
